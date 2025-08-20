@@ -1,13 +1,14 @@
+
 "use client"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
+import { InactivityMonitor } from "@/components/inactivity-monitor"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Clock, Calendar, CheckCircle, LogOut, User, Plus, Edit } from "lucide-react"
-import { InactivityMonitor } from "@/components/inactivity-monitor"
-import Image from "next/image"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 interface ShiftData {
   date: string
@@ -30,7 +31,11 @@ interface ShiftData {
 }
 
 export default function DriverDashboard() {
-  const router = useRouter()
+  /**
+   * Panel de conductor: gestión de turnos y estado personal.
+   * Documentación de funciones principales para facilitar refactorización.
+   */
+    const router = useRouter() // --- Panel CONDUCTOR ---
   const [userId, setUserId] = useState("")
   const [previousShift, setPreviousShift] = useState<ShiftData | null>(null)
   const [currentShift, setCurrentShift] = useState<ShiftData | null>(null)
@@ -84,12 +89,18 @@ export default function DriverDashboard() {
     }
   }, [userId]) // Agregar userId como dependencia para detectar cambios de usuario
 
+  /**
+   * Cierra sesión y limpia datos de usuario.
+   */
   const handleLogout = () => {
     localStorage.removeItem("userId")
     localStorage.removeItem("userRole")
     router.push("/login")
   }
 
+  /**
+   * Limpia los turnos y estado local del repartidor actual.
+   */
   const handleClearTurno = () => {
     try {
       // Limpiar turnos del repartidor actual
@@ -110,6 +121,9 @@ export default function DriverDashboard() {
     } catch {}
   }
 
+  /**
+   * Limpia los datos de localStorage para el usuario especificado.
+   */
   const clearUserData = (userId: string) => {
     try {
       // Limpiar localStorage específico del usuario

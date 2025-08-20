@@ -7,7 +7,10 @@ import autoTable from "jspdf-autotable"
 import { useState, useEffect } from "react"
 
 export default function AdminDashboard() {
-// Limpia todos los registros de la base de datos local (localStorage)
+/**
+ * Limpia todos los registros de la base de datos local (localStorage)
+ * Borra todos los datos de turnos y caja, incluyendo los registros individuales de cada repartidor.
+ */
 const handleCleanLocalDB = () => {
 	if (!confirm("¿Seguro que deseas borrar TODOS los registros de turnos y caja? Esta acción no se puede deshacer.")) return;
 	localStorage.removeItem("driverShifts");
@@ -25,69 +28,75 @@ const handleCleanLocalDB = () => {
 	setMonthlyData([]);
 	setSelectedMonth("");
 };
+			// Estado principal del panel de administración
 			const [selectedMonth, setSelectedMonth] = useState<string>("");
 			const [months, setMonths] = useState<string[]>([]);
 			const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
-			useEffect(() => {
-				// Obtener meses disponibles desde localStorage (driverShifts)
-				const driverShiftsRaw = localStorage.getItem("driverShifts") || "{}";
-				const driverShifts = JSON.parse(driverShiftsRaw);
-				const allShifts: any[] = Object.values(driverShifts).flat();
-				const uniqueMonths = Array.from(new Set(allShifts.map((row: any) => {
-					const d = new Date(row.date);
-					return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
-				}))).sort((a, b) => b.localeCompare(a));
-				setMonths(uniqueMonths as string[]);
-				if (!selectedMonth && uniqueMonths.length > 0) setSelectedMonth(String(uniqueMonths[0]));
-			}, []);
+			   useEffect(() => {
+				   // Obtener meses disponibles desde localStorage (driverShifts)
+				   const driverShiftsRaw = localStorage.getItem("driverShifts") || "{}";
+				   const driverShifts = JSON.parse(driverShiftsRaw);
+				   const allShifts: any[] = Object.values(driverShifts).flat();
+				   const uniqueMonths = Array.from(new Set(allShifts.map((row: any) => {
+					   const d = new Date(row.date);
+					   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
+				   }))).sort((a, b) => b.localeCompare(a));
+				   setMonths(uniqueMonths as string[]);
+				   if (!selectedMonth && uniqueMonths.length > 0) setSelectedMonth(String(uniqueMonths[0]));
+			   }, []);
 
-			useEffect(() => {
-				if (!selectedMonth) return;
-				// Obtener datos mensuales desde localStorage (driverShifts)
-				const driverShiftsRaw = localStorage.getItem("driverShifts") || "{}";
-				const driverShifts = JSON.parse(driverShiftsRaw);
-				const allShifts: any[] = Object.entries(driverShifts).flatMap(([driverId, shifts]) => {
-					if (Array.isArray(shifts)) {
-						return shifts.map(shift => ({ ...shift, driverId }));
-					}
-					return [];
-				});
-				const filtered = allShifts.filter((row: any) => {
-					const d = new Date(row.date);
-					const m = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
-					return m === selectedMonth;
-				});
-				const grouped: { [id: string]: any } = {};
-				filtered.forEach((row: any) => {
-					if (!grouped[row.driverId]) {
-						grouped[row.driverId] = {
-							driverId: row.driverId,
-							turnos: 0,
-							horas: 0,
-							tickets: 0,
-							cobro: 0,
-							incidencias: [],
-							observaciones: [],
-						};
-					}
-					grouped[row.driverId].turnos++;
-					grouped[row.driverId].horas += Number(row.hoursWorked || row.hours_worked || 0);
-					grouped[row.driverId].tickets += Number(row.totalTickets || row.tickets_delivered || 0);
-					grouped[row.driverId].cobro += Number(row.totalEarned || 0);
-					if (row.incidents) grouped[row.driverId].incidencias.push({ fecha: row.date, texto: row.incidents });
-					if (row.review_notes) grouped[row.driverId].observaciones.push({ fecha: row.date, texto: row.review_notes });
-				});
-				Object.values(grouped).forEach((g: any) => {
-					g.cobro = `$${g.cobro.toLocaleString()}`;
-				});
-				setMonthlyData(Object.values(grouped));
-			}, [selectedMonth]);
+			   useEffect(() => {
+				   if (!selectedMonth) return;
+				   // Obtener datos mensuales desde localStorage (driverShifts)
+				   const driverShiftsRaw = localStorage.getItem("driverShifts") || "{}";
+				   const driverShifts = JSON.parse(driverShiftsRaw);
+				   const allShifts: any[] = Object.entries(driverShifts).flatMap(([driverId, shifts]) => {
+					   if (Array.isArray(shifts)) {
+						   return shifts.map(shift => ({ ...shift, driverId }));
+					   }
+					   return [];
+				   });
+				   const filtered = allShifts.filter((row: any) => {
+					   const d = new Date(row.date);
+					   const m = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
+					   return m === selectedMonth;
+				   });
+				   // Agrupar y calcular resumen mensual
+				   const grouped: { [id: string]: any } = {};
+				   filtered.forEach((row: any) => {
+					   if (!grouped[row.driverId]) {
+						   grouped[row.driverId] = {
+							   driverId: row.driverId,
+							   turnos: 0,
+							   horas: 0,
+							   tickets: 0,
+							   cobro: 0,
+							   incidencias: [],
+							   observaciones: [],
+						   };
+					   }
+					   grouped[row.driverId].turnos++;
+					   grouped[row.driverId].horas += Number(row.hoursWorked || row.hours_worked || 0);
+					   grouped[row.driverId].tickets += Number(row.totalTickets || row.tickets_delivered || 0);
+					   grouped[row.driverId].cobro += Number(row.totalEarned || 0);
+					   if (row.incidents) grouped[row.driverId].incidencias.push({ fecha: row.date, texto: row.incidents });
+					   if (row.review_notes) grouped[row.driverId].observaciones.push({ fecha: row.date, texto: row.review_notes });
+				   });
+				   Object.values(grouped).forEach((g: any) => {
+					   g.cobro = `$${g.cobro.toLocaleString()}`;
+				   });
+				   setMonthlyData(Object.values(grouped));
+			   }, [selectedMonth]);
 
 	const router = useRouter();
 
-	// Las funciones de limpieza y cierre de turnos de la base de datos han sido deshabilitadas porque ahora el dashboard usa localStorage.
+	// --- Panel ADMIN ---
 
+	/**
+	 * Exporta el resumen mensual a un archivo Excel (CSV)
+	 * Incluye todos los datos filtrados por mes seleccionado.
+	 */
 	const handleExportExcel = () => {
 		// Exportar datos a Excel (simulado)
 		let csv = "Nro Repartidor,Turnos,Horas,Tickets,Cobro,Incidencias,Observaciones\n";
@@ -115,6 +124,10 @@ const handleCleanLocalDB = () => {
 		URL.revokeObjectURL(url);
 	};
 
+	/**
+	 * Exporta el resumen mensual a un archivo PDF
+	 * Utiliza jsPDF y autoTable para generar el reporte mensual.
+	 */
 	const handleExportPDF = () => {
 				const doc = new jsPDF();
 				doc.setFontSize(16);
@@ -187,6 +200,10 @@ const handleCleanLocalDB = () => {
 				doc.save(`reporte-mensual-${selectedMonth}.pdf`);
 	};
 
+	/**
+	 * Cierra sesión y limpia datos residuales del usuario y repartidores.
+	 * Redirige al login.
+	 */
 	const handleLogout = () => {
 			localStorage.removeItem("userRole")
 			localStorage.removeItem("userId")

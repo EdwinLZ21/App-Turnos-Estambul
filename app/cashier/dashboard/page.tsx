@@ -1,8 +1,8 @@
-"use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+"use client"
 import { AuthGuard } from "@/components/auth-guard"
+import { InactivityMonitor } from "@/components/inactivity-monitor"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,8 +12,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, User, Calendar, CheckCircle, Filter, LogOut, ChevronUp, ChevronDown } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Image from "next/image"
-import { InactivityMonitor } from "@/components/inactivity-monitor"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 interface ShiftData {
   id: string
@@ -41,6 +41,10 @@ interface ShiftData {
 }
 
 export default function CashierDashboard() {
+	/**
+	 * Panel de caja: gestión de turnos, revisión y exportación.
+	 * Documentación de funciones principales para facilitar refactorización.
+	 */
 	const router = useRouter()
 	const [userId, setUserId] = useState("")
 	const [pendingShifts, setPendingShifts] = useState<ShiftData[]>([])
@@ -77,6 +81,9 @@ export default function CashierDashboard() {
 		setActiveDrivers(drivers)
 	}, [pendingShifts])
 
+	/**
+	 * Carga los turnos pendientes y revisados desde localStorage.
+	 */
 	const loadShifts = () => {
 		try {
 			// Cargar turnos pendientes desde localStorage
@@ -92,12 +99,18 @@ export default function CashierDashboard() {
 		}
 	}
 
+	/**
+	 * Cierra sesión y limpia datos de usuario.
+	 */
 	const handleLogout = () => {
 		localStorage.removeItem("userId")
 		localStorage.removeItem("userRole")
 		router.push("/login")
 	}
 
+	/**
+	 * Marca un turno como revisado y actualiza el estado del repartidor.
+	 */
 	const handleReviewShift = (shiftId: string, reviewNotes: string, cashierNumber: string) => {
 		const shiftToReview = pendingShifts.find((shift) => shift.id === shiftId)
 		if (shiftToReview) {
