@@ -21,23 +21,22 @@ export function InactivityMonitor({ onLogout, timeoutSeconds = 30 }: InactivityM
     setCountdown(timeoutSeconds)
   }, [timeoutSeconds])
 
-  const handleActivity = useCallback(() => {
-    resetActivity()
-  }, [resetActivity])
-
   useEffect(() => {
     const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart", "click"]
-
-    events.forEach((event) => {
-      document.addEventListener(event, handleActivity, true)
-    })
-
-    return () => {
+    if (!showWarning) {
+      const handleActivity = () => {
+        resetActivity()
+      }
       events.forEach((event) => {
-        document.removeEventListener(event, handleActivity, true)
+        document.addEventListener(event, handleActivity, true)
       })
+      return () => {
+        events.forEach((event) => {
+          document.removeEventListener(event, handleActivity, true)
+        })
+      }
     }
-  }, [handleActivity])
+  }, [resetActivity, showWarning])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -70,10 +69,19 @@ export function InactivityMonitor({ onLogout, timeoutSeconds = 30 }: InactivityM
             <AlertTriangle className="h-8 w-8 text-yellow-500" />
           </div>
           <CardTitle>¿Estás ahí?</CardTitle>
-          <CardDescription>Sesión inactiva. Se cerrará automáticamente en {countdown} segundos.</CardDescription>
+          <CardDescription>
+            Sesión inactiva. Se cerrará automáticamente en{' '}
+            <span style={{ display: 'inline-block', minWidth: 40, textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+              {countdown}
+            </span>{' '}segundos.
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex gap-2">
-          <Button variant="outline" onClick={onLogout} className="flex-1 bg-transparent">
+          <Button variant="outline" onClick={() => {
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userRole');
+            onLogout();
+          }} className="flex-1 bg-transparent">
             Salir
           </Button>
           <Button onClick={resetActivity} className="flex-1">

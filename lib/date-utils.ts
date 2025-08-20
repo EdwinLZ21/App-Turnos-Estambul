@@ -4,6 +4,30 @@
 
 export class DateUtils {
   /**
+   * Get current time rounded to nearest 15 minutes (down if <15, up if >=15)
+   * If minutes are 0-14, round down to hour. If 15-29, round to :15. If 30-44, round to :30. If 45-59, round up to next hour.
+   */
+  static getRoundedCurrentTime(): string {
+    const now = new Date()
+    let hours = now.getHours()
+    let minutes = now.getMinutes()
+    let roundedMinutes = 0
+    if (minutes < 15) {
+      roundedMinutes = 0
+    } else if (minutes < 30) {
+      roundedMinutes = 15
+    } else if (minutes < 45) {
+      roundedMinutes = 30
+    } else {
+      roundedMinutes = 0
+      hours += 1
+      if (hours === 24) hours = 0
+    }
+    const hh = hours.toString().padStart(2, "0")
+    const mm = roundedMinutes.toString().padStart(2, "0")
+    return `${hh}:${mm}`
+  }
+  /**
    * Format date for display in Spanish locale
    */
   static formatDate(date: string | Date, options?: Intl.DateTimeFormatOptions): string {

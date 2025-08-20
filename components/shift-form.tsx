@@ -57,7 +57,8 @@ export function ShiftForm({ onSubmit, onCancel }: ShiftFormProps) {
 
   const confirmSubmit = () => {
     setIsSubmitting(true)
-
+  const [ticketsDelivered, setTicketsDelivered] = useState("")
+  const [netTotal, setNetTotal] = useState("")
     const userEmail = localStorage.getItem("userEmail") || ""
     const shift = ShiftManager.createShift(
       userEmail,

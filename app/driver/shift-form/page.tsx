@@ -37,23 +37,32 @@ interface ShiftData {
 
 export default function ShiftForm() {
   const router = useRouter()
-  const [currentShift, setCurrentShift] = useState<ShiftData>({
-    date: new Date().toISOString().split("T")[0],
-    entryTime: "00:00",
-    exitTime: "00:00",
-    cashChange: 50.1,
-    homeDeliveryOrders: "",
-    onlineOrders: "",
-    incidents: "",
-    hoursWorked: 0,
-    totalTickets: 0,
-    totalAmount: 0,
-    totalEarned: 0,
-    molaresOrders: false,
-    molaresOrderNumbers: "",
-    totalSalesPedidos: 0,
-    totalDatafono: 0,
-    totalCajaNeto: 0,
+  const [currentShift, setCurrentShift] = useState<ShiftData>(() => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "" : ""
+    const savedShift = typeof window !== 'undefined' ? localStorage.getItem(`currentShiftDraft_${userId}`) : null
+    if (savedShift) {
+      try {
+        return JSON.parse(savedShift)
+      } catch {}
+    }
+    return {
+      date: new Date().toISOString().split("T")[0],
+      entryTime: "00:00",
+      exitTime: "00:00",
+      cashChange: 50.1,
+      homeDeliveryOrders: "",
+      onlineOrders: "",
+      incidents: "",
+      hoursWorked: 0,
+      totalTickets: 0,
+      totalAmount: 0,
+      totalEarned: 0,
+      molaresOrders: false,
+      molaresOrderNumbers: "",
+      totalSalesPedidos: 0,
+      totalDatafono: 0,
+      totalCajaNeto: 0,
+    }
   })
   const [errors, setErrors] = useState<string[]>([])
   const [submitted, setSubmitted] = useState(false)
@@ -220,19 +229,24 @@ export default function ShiftForm() {
       submittedAt: new Date().toISOString(),
     }
 
-    // Guardar en localStorage para el cajero
-    const existingPendingShifts = JSON.parse(localStorage.getItem("pendingShifts") || "[]")
-    const updatedPendingShifts = [...existingPendingShifts, pendingShift]
-    localStorage.setItem("pendingShifts", JSON.stringify(updatedPendingShifts))
+  // Guardar en localStorage para el cajero
+  const existingPendingShifts = JSON.parse(localStorage.getItem("pendingShifts") || "[]")
+  // Eliminar posibles turnos previos pendientes del mismo repartidor (evita duplicados)
+  const filteredPendingShifts = existingPendingShifts.filter((shift: any) => shift.driverId !== driverId)
+  const updatedPendingShifts = [...filteredPendingShifts, pendingShift]
+  localStorage.setItem("pendingShifts", JSON.stringify(updatedPendingShifts))
 
-    // Guardar como turno actual del repartidor (NO como anterior)
-    localStorage.setItem(`currentShift_${driverId}`, JSON.stringify(currentShift))
-    localStorage.setItem(`shiftSubmitted_${driverId}`, "true")
-    
-    // NO eliminar el borrador para mantener el estado en el panel
-    // localStorage.removeItem(`currentShiftDraft_${driverId}`)
+  // Guardar como turno actual del repartidor
+  localStorage.setItem(`currentShift_${driverId}`, JSON.stringify(pendingShift))
+  localStorage.setItem(`shiftSubmitted_${driverId}`, "true")
 
-    router.push("/driver/dashboard")
+  // NO eliminar el borrador para mantener el estado en el panel
+  // localStorage.removeItem(`currentShiftDraft_${driverId}`)
+
+  // Forzar evento de storage para que el panel de caja se actualice
+  window.dispatchEvent(new Event('storage'))
+
+  router.push("/driver/dashboard")
   }
 
   const handleBackToPanel = () => {
@@ -326,15 +340,6 @@ export default function ShiftForm() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver al Panel
           </Button>
-          <div className="w-10 h-10 bg-white rounded-full p-2 shadow-lg border border-red-200">
-            <Image
-              src="/estambul-logo.jpg"
-              alt="Estambul Kebab"
-              width={24}
-              height={24}
-              className="w-full h-full object-contain"
-            />
-          </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Formulario de Turno</h1>
             <p className="text-gray-600">Completa todos los campos requeridos</p>
@@ -344,10 +349,20 @@ export default function ShiftForm() {
         <div className="max-w-2xl mx-auto">
           <Card className="border-red-200 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg">
-              <CardTitle className="text-xl">Nuevo Turno</CardTitle>
+              <CardTitle className="text-xl">
+                {currentShift && currentShift.entryTime !== "00:00" && currentShift.exitTime !== "00:00" ? "Continuar Turno" : "Nuevo Turno"}
+              </CardTitle>
               <CardDescription className="text-red-100">
-                Fecha: {new Date().toLocaleDateString("es-ES")}
+                Fecha: {currentShift.date ? new Date(currentShift.date).toLocaleDateString("es-ES") : new Date().toLocaleDateString("es-ES")}
               </CardDescription>
+              {currentShift && currentShift.entryTime !== "00:00" && currentShift.exitTime !== "00:00" && (
+                <div className="mt-2 text-sm text-white bg-red-700/30 rounded-lg p-2">
+                  <div><b>Resumen:</b></div>
+                  <div>Horario: {currentShift.entryTime} - {currentShift.exitTime}</div>
+                  <div>Pedidos domicilio: {currentShift.homeDeliveryOrders || "-"}</div>
+                  <div>Pedidos online: {currentShift.onlineOrders || "-"}</div>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-8">
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -483,19 +498,6 @@ export default function ShiftForm() {
                 </div>
 
                 {/* Incidents */}
-                <div className="space-y-2">
-                  <Label htmlFor="incidents" className="text-base font-medium">
-                    Incidencias (opcional)
-                  </Label>
-                  <Textarea
-                    id="incidents"
-                    placeholder="Describe cualquier incidencia..."
-                    value={currentShift.incidents}
-                    onChange={(e) => setCurrentShift((prev) => ({ ...prev, incidents: e.target.value }))}
-                    rows={3}
-                    className="text-base"
-                  />
-                </div>
 
                 {/* Calculated Fields */}
                 <div className="space-y-4 border-2 border-blue-200 rounded-lg p-6 bg-blue-50">

@@ -47,28 +47,20 @@ export default function DriverDashboard() {
     
     setUserId(id)
 
-    // Cargar turnos específicos del repartidor actual
-    const driverShifts = JSON.parse(localStorage.getItem("driverShifts") || "{}")
-    const userShifts = driverShifts[id] || []
-    
-    if (userShifts.length > 0) {
-      // El último turno revisado se convierte en el turno anterior
-      const lastReviewedShift = userShifts[userShifts.length - 1]
-      setPreviousShift(lastReviewedShift)
-      
-      // Si el turno fue revisado o no revisado, limpiar el estado actual para permitir nuevo turno
-      if (lastReviewedShift.status === "reviewed" || lastReviewedShift.status === "unreviewed") {
-        // Limpiar localStorage específico del usuario
-        localStorage.removeItem(`currentShift_${id}`)
-        localStorage.removeItem(`currentShiftDraft_${id}`)
-        localStorage.removeItem(`shiftSubmitted_${id}`)
-        setIsSubmitted(false)
-        setCurrentShift(null)
-        setCurrentShiftDraft(null)
-      }
+    // Cargar turno anterior desde previousShift_{id} si existe
+    const previousShiftRaw = localStorage.getItem(`previousShift_${id}`)
+    if (previousShiftRaw) {
+      setPreviousShift(JSON.parse(previousShiftRaw))
     } else {
-      // Si no hay turnos revisados, limpiar todo
-      setPreviousShift(null)
+      // Si no hay turno anterior, buscar en driverShifts
+      const driverShifts = JSON.parse(localStorage.getItem("driverShifts") || "{}")
+      const userShifts = driverShifts[id] || []
+      if (userShifts.length > 0) {
+        const lastReviewedShift = userShifts[userShifts.length - 1]
+        setPreviousShift(lastReviewedShift)
+      } else {
+        setPreviousShift(null)
+      }
     }
 
     // Cargar borrador específico del usuario actual
@@ -143,13 +135,14 @@ export default function DriverDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-6">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-white rounded-full p-2 shadow-lg border border-red-200">
+            <div className="w-12 h-12 rounded-full shadow-lg border border-red-200 bg-transparent overflow-hidden flex items-center justify-center">
               <Image
-                src="/estambul-logo.jpg"
-                alt="Estambul Kebab"
-                width={32}
-                height={32}
-                className="w-full h-full object-contain"
+                src="/Logo-Estambul.jpg"
+                alt="Logo Estambul"
+                width={48}
+                height={48}
+                className="w-full h-full object-cover rounded-full border border-red-200"
+                style={{background: 'transparent', objectFit: 'cover', borderRadius: '50%'}}
               />
             </div>
             <div className="space-y-1">
@@ -158,13 +151,6 @@ export default function DriverDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleClearTurno}
-              className="border-yellow-200 hover:bg-yellow-50 bg-transparent"
-            >
-              Limpiar Turno
-            </Button>
             <Button
               variant="outline"
               onClick={handleLogout}
@@ -300,9 +286,15 @@ export default function DriverDashboard() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h4 className="text-lg font-semibold text-gray-900">{previousShift.date}</h4>
-                    <Badge variant="outline" className={`${previousShift.status === "unreviewed" ? 'border-yellow-200 text-yellow-700' : 'border-green-200 text-green-700'}`}>
-                      {previousShift.status === "unreviewed" ? "Sin Revisar" : "Completado"}
-                    </Badge>
+                    {previousShift.status === "unreviewed" ? (
+                      <span className="px-4 py-1 rounded-full bg-yellow-100 border border-yellow-400 text-yellow-800 font-semibold shadow-sm animate-pulse">
+                        Sin Revisar
+                      </span>
+                    ) : (
+                      <span className="px-4 py-1 rounded-full bg-green-100 border border-green-400 text-green-800 font-semibold shadow-sm">
+                        Completado
+                      </span>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
@@ -323,8 +315,8 @@ export default function DriverDashboard() {
                   </div>
 
                   <div className="text-center p-6 bg-green-50 border-2 border-green-200 rounded-lg">
-                    <p className="text-3xl font-bold text-green-600 mb-2">{previousShift.totalCajaNeto.toFixed(2)} €</p>
-                    <p className="text-lg font-medium text-green-700">Total Caja Neto</p>
+                    <p className="text-3xl font-bold text-green-600 mb-2">{previousShift.totalEarned.toFixed(2)} €</p>
+                    <p className="text-lg font-medium text-green-700">Pago del turno</p>
                   </div>
 
                   {previousShift.incidents && (
