@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useRouter } from "next/navigation"
-import { SessionManager } from "@/lib/session-manager"
 import Image from "next/image"
 
 export default function LoginPage() {
@@ -30,10 +29,10 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
 
+    // Simulate authentication
     try {
       if (!selectedRole) {
         setError("Por favor, selecciona un rol")
-        setIsLoading(false)
         return
       }
 
@@ -55,23 +54,22 @@ export default function LoginPage() {
           "11": "44445",
           "12": "12321",
         }
+
         if (!username || !password) {
           setError("Ingresa usuario y contraseña")
-          setIsLoading(false)
           return
         }
+
         if (driverPasswords[username] && driverPasswords[username] === password) {
           userRole = "driver"
           userId = username
         } else {
           setError("Usuario, contraseña o rol incorrectos")
-          setIsLoading(false)
           return
         }
       } else if (selectedRole === "cashier") {
         if (!password) {
           setError("Ingresa la contraseña")
-          setIsLoading(false)
           return
         }
         if (password === "002") {
@@ -79,7 +77,6 @@ export default function LoginPage() {
           userId = "1"
         } else {
           setError("Contraseña incorrecta")
-          setIsLoading(false)
           return
         }
       } else if (selectedRole === "admin") {
@@ -88,23 +85,15 @@ export default function LoginPage() {
           userId = "admin"
         } else {
           setError("Usuario o contraseña de admin incorrectos")
-          setIsLoading(false)
           return
         }
       }
 
-      // Crear/actualizar sesión única en Supabase
-      const token = await SessionManager.createOrUpdateSession(userId, userRole)
-      if (!token) {
-        setError("No se pudo iniciar sesión. Ya existe una sesión activa o hubo un error.")
-        setIsLoading(false)
-        return
-      }
+      // Store user session
       localStorage.setItem("userRole", userRole)
       localStorage.setItem("userId", userId)
-      localStorage.setItem("sessionToken", token)
 
-      // Redirección por rol
+      // Redirect based on role
       if (userRole === "cashier") {
         router.push("/cashier/dashboard")
       } else if (userRole === "admin") {

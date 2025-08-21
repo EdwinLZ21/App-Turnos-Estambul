@@ -14,7 +14,6 @@ import { Clock, User, Calendar, CheckCircle, Filter, LogOut, ChevronUp, ChevronD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { SessionManager } from "@/lib/session-manager"
 
 interface ShiftData {
   id: string
@@ -55,32 +54,20 @@ export default function CashierDashboard() {
 	const [activeDrivers, setActiveDrivers] = useState<string[]>([])
 
 	useEffect(() => {
-		const validate = async () => {
-			const id = localStorage.getItem("userId") || ""
-			const token = localStorage.getItem("sessionToken") || ""
-			if (!id || !token) {
-				localStorage.clear()
-				router.push("/login")
-				return
-			}
-			const valid = await SessionManager.validateSession(id, token)
-			if (!valid) {
-				localStorage.clear()
-				router.push("/login")
-				return
-			}
-			setUserId(id)
+		const id = localStorage.getItem("userId") || ""
+		setUserId(id)
+		loadShifts()
+		
+		// Escuchar cambios en localStorage
+		const handleStorageChange = () => {
 			loadShifts()
-			// Escuchar cambios en localStorage
-			const handleStorageChange = () => {
-				loadShifts()
-			}
-			window.addEventListener('storage', handleStorageChange)
-			return () => {
-				window.removeEventListener('storage', handleStorageChange)
-			}
 		}
-		validate()
+		
+		window.addEventListener('storage', handleStorageChange)
+		
+		return () => {
+			window.removeEventListener('storage', handleStorageChange)
+		}
 	}, [])
 
 	useEffect(() => {

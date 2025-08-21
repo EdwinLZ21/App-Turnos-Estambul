@@ -1,31 +1,12 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { SessionManager } from "@/lib/session-manager"
 import Image from "next/image"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import { useState, useEffect } from "react"
 
 export default function AdminDashboard() {
-	useEffect(() => {
-		const validate = async () => {
-			const id = localStorage.getItem("userId") || ""
-			const token = localStorage.getItem("sessionToken") || ""
-			if (!id || !token) {
-				localStorage.clear()
-				router.push("/login")
-				return
-			}
-			const valid = await SessionManager.validateSession(id, token)
-			if (!valid) {
-				localStorage.clear()
-				router.push("/login")
-				return
-			}
-		}
-		validate()
-	}, [])
 /**
  * Limpia todos los registros de la base de datos local (localStorage)
  * Borra todos los datos de turnos y caja, incluyendo los registros individuales de cada repartidor.
