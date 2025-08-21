@@ -31,6 +31,25 @@ interface ShiftData {
 }
 
 export default function DriverDashboard() {
+  // Validación de sesión única
+  useEffect(() => {
+    const validate = async () => {
+      const id = localStorage.getItem("userId") || ""
+      const token = localStorage.getItem("sessionToken") || ""
+      if (!id || !token) {
+        localStorage.clear()
+        router.push("/login")
+        return
+      }
+      const valid = await import("@/lib/session-manager").then(m => m.SessionManager.validateSession(id, token))
+      if (!valid) {
+        localStorage.clear()
+        router.push("/login")
+        return
+      }
+    }
+    validate()
+  }, [])
   /**
    * Panel de conductor: gestión de turnos y estado personal.
    * Documentación de funciones principales para facilitar refactorización.

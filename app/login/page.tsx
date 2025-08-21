@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useRouter } from "next/navigation"
+import { SessionManager } from "@/lib/session-manager"
 import Image from "next/image"
 
 export default function LoginPage() {
@@ -20,6 +21,8 @@ export default function LoginPage() {
   const [showAdminForm, setShowAdminForm] = useState(false)
   const [adminUser, setAdminUser] = useState("")
   const [adminPass, setAdminPass] = useState("")
+  const [adminError, setAdminError] = useState("")
+  const [adminLoading, setAdminLoading] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,10 +30,10 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
 
-    // Simulate authentication
     try {
       if (!selectedRole) {
         setError("Por favor, selecciona un rol")
+        setIsLoading(false)
         return
       }
 
@@ -52,22 +55,23 @@ export default function LoginPage() {
           "11": "44445",
           "12": "12321",
         }
-
         if (!username || !password) {
           setError("Ingresa usuario y contraseña")
+          setIsLoading(false)
           return
         }
-
         if (driverPasswords[username] && driverPasswords[username] === password) {
           userRole = "driver"
           userId = username
         } else {
           setError("Usuario, contraseña o rol incorrectos")
+          setIsLoading(false)
           return
         }
       } else if (selectedRole === "cashier") {
         if (!password) {
           setError("Ingresa la contraseña")
+          setIsLoading(false)
           return
         }
         if (password === "002") {
@@ -75,6 +79,7 @@ export default function LoginPage() {
           userId = "1"
         } else {
           setError("Contraseña incorrecta")
+          setIsLoading(false)
           return
         }
       } else if (selectedRole === "admin") {
@@ -83,15 +88,23 @@ export default function LoginPage() {
           userId = "admin"
         } else {
           setError("Usuario o contraseña de admin incorrectos")
+          setIsLoading(false)
           return
         }
       }
 
-      // Store user session
+      // Crear/actualizar sesión única en Supabase
+      const token = await SessionManager.createOrUpdateSession(userId, userRole)
+      if (!token) {
+        setError("No se pudo iniciar sesión. Ya existe una sesión activa o hubo un error.")
+        setIsLoading(false)
+        return
+      }
       localStorage.setItem("userRole", userRole)
       localStorage.setItem("userId", userId)
+      localStorage.setItem("sessionToken", token)
 
-      // Redirect based on role
+      // Redirección por rol
       if (userRole === "cashier") {
         router.push("/cashier/dashboard")
       } else if (userRole === "admin") {
@@ -129,12 +142,17 @@ export default function LoginPage() {
               <div className="absolute left-0 top-full mt-2 z-50 bg-white border border-red-200 rounded-xl shadow-lg p-4 w-64 animate-fade-in flex flex-col items-center">
                 <h2 className="text-lg font-bold text-red-700 mb-2">Acceso Admin</h2>
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault()
-                    setSelectedRole("admin")
-                    setUsername(adminUser)
-                    setPassword(adminPass)
-                    handleSubmit(e)
+                    // Autenticación admin separada
+                    if (adminUser === "admin" && adminPass === "12345") {
+                      localStorage.setItem("userRole", "admin")
+                      localStorage.setItem("userId", "admin")
+                      setShowAdminForm(false)
+                      router.push("/admin/dashboard")
+                    } else {
+                      setAdminError("Usuario o contraseña de admin incorrectos")
+                    }
                   }}
                   className="w-full space-y-2"
                 >
@@ -156,6 +174,11 @@ export default function LoginPage() {
                     className="border-red-200 focus:border-red-500"
                     required
                   />
+                  {adminError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{adminError}</AlertDescription>
+                    </Alert>
+                  )}
                   <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 h-10 text-base font-medium">
                     Ingresar como Admin
                   </Button>

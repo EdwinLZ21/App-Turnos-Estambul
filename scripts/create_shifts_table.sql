@@ -1,0 +1,26 @@
+-- Tabla centralizada de turnos para sincronización entre dispositivos
+CREATE TABLE IF NOT EXISTS shifts (
+	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	driver_id text NOT NULL,
+	date date NOT NULL,
+	entry_time text,
+	exit_time text,
+	cash_change numeric,
+	home_delivery_orders text,
+	online_orders text,
+	incidents text,
+	hours_worked numeric,
+	total_tickets integer,
+	total_amount numeric,
+	total_earned numeric,
+	molares_orders boolean,
+	molares_order_numbers text,
+	total_sales_pedidos numeric,
+	total_datafono numeric,
+	total_caja_neto numeric,
+	status text,
+	reviewed_by text,
+	reviewed_at timestamptz,
+	review_notes text,
+	created_at timestamptz DEFAULT now()
+);

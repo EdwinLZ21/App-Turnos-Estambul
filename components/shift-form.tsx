@@ -40,11 +40,11 @@ export function ShiftForm({ onSubmit, onCancel }: ShiftFormProps) {
     }
   }, [entryTime, exitTime])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const userEmail = localStorage.getItem("userEmail") || ""
-    const validationErrors = ShiftManager.validateShift(entryTime, exitTime, ticketsDelivered, netTotal, userEmail)
+    const validationErrors = await ShiftManager.validateShift(entryTime, exitTime, ticketsDelivered, netTotal, userEmail)
 
     if (validationErrors.length > 0) {
       setErrors(validationErrors)

@@ -47,14 +47,14 @@ export class ShiftManager {
   /**
    * Validate shift data before submission
    */
-  static validateShift(
+  static async validateShift(
     entryTime: string,
     exitTime: string,
     ticketsDelivered: string,
     netTotal: string,
     driverEmail: string,
     date?: string,
-  ): ShiftValidationError[] {
+  ): Promise<ShiftValidationError[]> {
     const errors: ShiftValidationError[] = []
     const shiftDate = date || new Date().toISOString().split("T")[0]
 
@@ -99,7 +99,7 @@ export class ShiftManager {
     }
 
     // Check for duplicate shifts
-    if (this.hasShiftForDate(driverEmail, shiftDate)) {
+    if (await this.hasShiftForDate(driverEmail, shiftDate)) {
       errors.push({ field: "date", message: "Ya tienes un turno registrado para esta fecha" })
     }
 
@@ -109,100 +109,95 @@ export class ShiftManager {
   /**
    * Check if driver already has a shift for the given date
    */
-  static hasShiftForDate(driverEmail: string, date: string): boolean {
-    const shifts = this.getDriverShifts(driverEmail)
-    return shifts.some((shift) => shift.date === date)
+  static async hasShiftForDate(driverEmail: string, date: string): Promise<boolean> {
+    const shifts: Shift[] = await this.getDriverShifts(driverEmail)
+    return shifts.some((shift: Shift) => shift.date === date)
   }
 
   /**
    * Get all shifts for a specific driver
    */
-  static getDriverShifts(driverEmail: string): Shift[] {
-    const shiftsData = localStorage.getItem(`shifts_${driverEmail}`)
-    return shiftsData ? JSON.parse(shiftsData) : []
+  static async getDriverShifts(driverEmail: string): Promise<Shift[]> {
+    const { supabase } = await import('./supabase-client')
+    const { data, error } = await supabase
+      .from('shifts')
+      .select('*')
+      .eq('driverEmail', driverEmail)
+    if (error) return []
+    return data || []
   }
 
   /**
    * Save shift for a driver
    */
-  static saveShift(shift: Shift): void {
-    const existingShifts = this.getDriverShifts(shift.driverEmail)
-    const updatedShifts = [...existingShifts, shift]
-    localStorage.setItem(`shifts_${shift.driverEmail}`, JSON.stringify(updatedShifts))
+  static async saveShift(shift: Shift): Promise<boolean> {
+    const { supabase } = await import('./supabase-client')
+    const { error } = await supabase.from('shifts').insert([shift])
+    return !error
   }
 
   /**
    * Update an existing shift
    */
-  static updateShift(updatedShift: Shift): void {
-    const shifts = this.getDriverShifts(updatedShift.driverEmail)
-    const updatedShifts = shifts.map((shift) => (shift.id === updatedShift.id ? updatedShift : shift))
-    localStorage.setItem(`shifts_${updatedShift.driverEmail}`, JSON.stringify(updatedShifts))
+  static async updateShift(updatedShift: Shift): Promise<boolean> {
+    const { supabase } = await import('./supabase-client')
+    const { error } = await supabase
+      .from('shifts')
+      .update(updatedShift)
+      .eq('id', updatedShift.id)
+    return !error
   }
 
   /**
    * Get all shifts from all drivers (for cashier view)
    */
-  static getAllShifts(): Shift[] {
-    const allShifts: Shift[] = []
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key?.startsWith("shifts_")) {
-        const driverEmail = key.replace("shifts_", "")
-        const driverShifts: Shift[] = JSON.parse(localStorage.getItem(key) || "[]")
-
-        // Ensure driver email is set on each shift
-        const shiftsWithDriver = driverShifts.map((shift) => ({
-          ...shift,
-          driverEmail: shift.driverEmail || driverEmail,
-        }))
-
-        allShifts.push(...shiftsWithDriver)
-      }
-    }
-
-    return allShifts.sort(
-      (a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime(),
+  static async getAllShifts(): Promise<Shift[]> {
+    const { supabase } = await import('./supabase-client')
+    const { data, error } = await supabase
+      .from('shifts')
+      .select('*')
+    if (error) return []
+    return (data || []).sort(
+      (a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()
     )
   }
 
   /**
    * Get pending shifts for review
    */
-  static getPendingShifts(): Shift[] {
-    return this.getAllShifts().filter((shift) => shift.status === "pending")
+  static async getPendingShifts(): Promise<Shift[]> {
+    const allShifts = await this.getAllShifts()
+    return allShifts.filter((shift) => shift.status === "pending")
   }
 
   /**
    * Get reviewed shifts
    */
-  static getReviewedShifts(): Shift[] {
-    return this.getAllShifts().filter((shift) => shift.status === "reviewed")
+  static async getReviewedShifts(): Promise<Shift[]> {
+    const allShifts = await this.getAllShifts()
+    return allShifts.filter((shift) => shift.status === "reviewed")
   }
 
   /**
    * Review a shift (mark as reviewed)
    */
-  static reviewShift(shiftId: string, reviewedBy: string, reviewNotes?: string): boolean {
-    const allShifts = this.getAllShifts()
-    const shiftToReview = allShifts.find((shift) => shift.id === shiftId)
-
-    if (!shiftToReview || shiftToReview.status !== "pending") {
-      return false
-    }
-
-    const updatedShift: Shift = {
-      ...shiftToReview,
+  static async reviewShift(shiftId: string, reviewedBy: string, reviewNotes?: string): Promise<boolean> {
+    const { supabase } = await import('./supabase-client')
+    const { data, error } = await supabase
+      .from('shifts')
+      .select('*')
+      .eq('id', shiftId)
+      .single()
+    if (error || !data || data.status !== "pending") return false
+    const updatedShift = {
+      ...data,
       status: "reviewed",
       reviewedBy,
       reviewedAt: new Date().toISOString(),
       reviewNotes: reviewNotes?.trim() || undefined,
       updatedAt: new Date().toISOString(),
     }
-
-    this.updateShift(updatedShift)
-    return true
+    return await this.updateShift(updatedShift)
   }
 
   /**
@@ -239,10 +234,10 @@ export class ShiftManager {
   /**
    * Get shift statistics for a driver
    */
-  static getDriverStats(
+  static async getDriverStats(
     driverEmail: string,
     days = 30,
-  ): {
+  ): Promise<{
     totalShifts: number
     totalHours: number
     totalTickets: number
@@ -250,17 +245,17 @@ export class ShiftManager {
     averageHoursPerShift: number
     averageTicketsPerShift: number
     averageEarningsPerShift: number
-  } {
-    const shifts = this.getDriverShifts(driverEmail)
+  }> {
+    const shifts: Shift[] = await this.getDriverShifts(driverEmail)
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
 
-    const recentShifts = shifts.filter((shift) => shift.status === "reviewed" && new Date(shift.date) >= cutoffDate)
+    const recentShifts = shifts.filter((shift: Shift) => shift.status === "reviewed" && new Date(shift.date) >= cutoffDate)
 
     const totalShifts = recentShifts.length
-    const totalHours = recentShifts.reduce((sum, shift) => sum + shift.hoursWorked, 0)
-    const totalTickets = recentShifts.reduce((sum, shift) => sum + shift.ticketsDelivered, 0)
-    const totalEarnings = recentShifts.reduce((sum, shift) => sum + shift.netTotal, 0)
+    const totalHours = recentShifts.reduce((sum: number, shift: Shift) => sum + shift.hoursWorked, 0)
+    const totalTickets = recentShifts.reduce((sum: number, shift: Shift) => sum + shift.ticketsDelivered, 0)
+    const totalEarnings = recentShifts.reduce((sum: number, shift: Shift) => sum + shift.netTotal, 0)
 
     return {
       totalShifts,
@@ -326,14 +321,9 @@ export class ShiftManager {
   /**
    * Clear all shift data (for testing/reset purposes)
    */
-  static clearAllShifts(): void {
-    const keysToRemove: string[] = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key?.startsWith("shifts_")) {
-        keysToRemove.push(key)
-      }
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key))
+  static async clearAllShifts(): Promise<boolean> {
+    const { supabase } = await import('./supabase-client')
+    const { error } = await supabase.from('shifts').delete().neq('id', '')
+    return !error
   }
 }

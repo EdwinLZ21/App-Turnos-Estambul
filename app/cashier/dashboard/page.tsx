@@ -14,6 +14,7 @@ import { Clock, User, Calendar, CheckCircle, Filter, LogOut, ChevronUp, ChevronD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { SessionManager } from "@/lib/session-manager"
 
 interface ShiftData {
   id: string
@@ -54,20 +55,32 @@ export default function CashierDashboard() {
 	const [activeDrivers, setActiveDrivers] = useState<string[]>([])
 
 	useEffect(() => {
-		const id = localStorage.getItem("userId") || ""
-		setUserId(id)
-		loadShifts()
-		
-		// Escuchar cambios en localStorage
-		const handleStorageChange = () => {
+		const validate = async () => {
+			const id = localStorage.getItem("userId") || ""
+			const token = localStorage.getItem("sessionToken") || ""
+			if (!id || !token) {
+				localStorage.clear()
+				router.push("/login")
+				return
+			}
+			const valid = await SessionManager.validateSession(id, token)
+			if (!valid) {
+				localStorage.clear()
+				router.push("/login")
+				return
+			}
+			setUserId(id)
 			loadShifts()
+			// Escuchar cambios en localStorage
+			const handleStorageChange = () => {
+				loadShifts()
+			}
+			window.addEventListener('storage', handleStorageChange)
+			return () => {
+				window.removeEventListener('storage', handleStorageChange)
+			}
 		}
-		
-		window.addEventListener('storage', handleStorageChange)
-		
-		return () => {
-			window.removeEventListener('storage', handleStorageChange)
-		}
+		validate()
 	}, [])
 
 	useEffect(() => {
@@ -287,52 +300,52 @@ export default function CashierDashboard() {
 						</div>
 					</div>
 
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-						<Card className="border-blue-200 shadow-lg">
-							<CardContent className="pt-6">
-								<div className="flex items-center gap-2 mb-2">
-									<User className="h-5 w-5 text-blue-600" />
-									<span className="text-base font-semibold text-gray-700">Repartidores activos</span>
-								</div>
-								<p className="text-3xl font-bold text-blue-600 mb-1">{activeDrivers.length}</p>
-								<p className="text-sm text-gray-500 mb-4">Actualmente en reparto</p>
-								{activeDrivers.length > 0 ? (
-									<div className="space-y-3">
-										{activeDrivers.map((id) => {
-											const shiftRaw = typeof window !== 'undefined' ? localStorage.getItem(`currentShift_${id}`) : null
-											let pedidosDomicilio = "Sin pedidos"
-											let pedidosOnline = "Sin pedidos"
-											let pedidosMolares = ""
-											if (shiftRaw) {
-												try {
-													const shift: ShiftData = JSON.parse(shiftRaw)
-													pedidosDomicilio = shift.homeDeliveryOrders || "Sin pedidos"
-													pedidosOnline = shift.onlineOrders || "Sin pedidos"
-													if (shift.molaresOrders && shift.molaresOrderNumbers) {
-														pedidosMolares = ` | Molares: ${shift.molaresOrderNumbers}`
-													}
-												} catch {}
+					<div className="w-full bg-white rounded-2xl shadow-lg p-6 mb-8">
+						<div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-2">
+							<div className="flex items-center gap-3">
+								<User className="h-7 w-7 text-blue-600" />
+								<span className="text-xl font-bold text-gray-900">Repartidores activos</span>
+								<span className="ml-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold text-lg">{activeDrivers.length}</span>
+							</div>
+							<span className="text-base text-gray-500">Actualmente en reparto</span>
+						</div>
+						{activeDrivers.length > 0 ? (
+							<div className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+								{activeDrivers.map((id) => {
+									const shiftRaw = typeof window !== 'undefined' ? localStorage.getItem(`currentShift_${id}`) : null
+									let pedidosDomicilio = "Sin pedidos"
+									let pedidosOnline = "Sin pedidos"
+									let pedidosMolares = ""
+									if (shiftRaw) {
+										try {
+											const shift: ShiftData = JSON.parse(shiftRaw)
+											pedidosDomicilio = shift.homeDeliveryOrders || "Sin pedidos"
+											pedidosOnline = shift.onlineOrders || "Sin pedidos"
+											if (shift.molaresOrders && shift.molaresOrderNumbers) {
+												pedidosMolares = ` | Molares: ${shift.molaresOrderNumbers}`
 											}
-															return (
-																<div key={id} className="flex flex-col w-full bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 mb-2">
-																	<span className="font-semibold text-blue-800">Repartidor {id}</span>
-																	<div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 w-full">
-																		<span className="text-sm text-gray-700">Domicilio: <span className="font-mono text-blue-700 break-all">{pedidosDomicilio}</span></span>
-																		<span className="text-sm text-gray-700">Online: <span className="font-mono text-blue-700 break-all">{pedidosOnline}</span></span>
-																		{pedidosMolares && (
-																			<span className="text-sm text-gray-700">Molares: <span className="font-mono text-blue-700 break-all">{pedidosMolares.replace(' | Molares: ', '')}</span></span>
-																		)}
-																	</div>
-																</div>
-															)
-										})}
-									</div>
-								) : (
-									<div className="text-gray-400 text-sm">No hay repartidores activos</div>
-								)}
-							</CardContent>
-						</Card>
+										} catch {}
+									}
+									return (
+										<div key={id} className="flex flex-col items-center justify-center min-h-[150px] bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-2xl px-6 py-5 shadow-md overflow-hidden">
+											<div className="w-14 h-14 rounded-full bg-blue-200 flex items-center justify-center mb-2">
+												<User className="h-8 w-8 text-blue-700" />
+											</div>
+											<span className="font-bold text-blue-800 text-lg mb-1 truncate">Repartidor {id}</span>
+											<div className="flex flex-col gap-1 w-full text-center">
+												<span className="text-sm text-gray-700 truncate flex items-center justify-center gap-1"><Clock className="h-4 w-4 text-blue-400" /> Domicilio: <span className="font-mono text-blue-700 break-all">{pedidosDomicilio}</span></span>
+												<span className="text-sm text-gray-700 truncate flex items-center justify-center gap-1"><Calendar className="h-4 w-4 text-blue-400" /> Online: <span className="font-mono text-blue-700 break-all">{pedidosOnline}</span></span>
+												{pedidosMolares && (
+													<span className="text-sm text-gray-700 truncate flex items-center justify-center gap-1"><CheckCircle className="h-4 w-4 text-green-400" /> Molares: <span className="font-mono text-blue-700 break-all">{pedidosMolares.replace(' | Molares: ', '')}</span></span>
+												)}
+											</div>
+										</div>
+									)
+								})}
+							</div>
+						) : (
+							<div className="text-gray-400 text-sm">No hay repartidores activos</div>
+						)}
 					</div>
 
 					{/* Filtros eliminados */}
@@ -347,49 +360,49 @@ export default function CashierDashboard() {
 							</TabsTrigger>
 						</TabsList>
 
-						<TabsContent value="pending" className="space-y-4">
-							{getFilteredPendingShifts().length === 0 ? (
-								<Card className="border-gray-200 shadow-lg">
-									<CardContent className="pt-6">
-										<div className="text-center py-12 space-y-4">
-											<CheckCircle className="h-16 w-16 text-gray-300 mx-auto" />
-											<div className="space-y-2">
-												<h4 className="text-lg font-medium text-gray-500">No hay turnos pendientes</h4>
-												<p className="text-sm text-gray-400">Los turnos enviados por repartidores aparecerán aquí</p>
+									<TabsContent value="pending" className="w-full">
+										{getFilteredPendingShifts().length === 0 ? (
+											<Card className="border-gray-200 shadow-lg">
+												<CardContent className="pt-6">
+													<div className="text-center py-12 space-y-4">
+														<CheckCircle className="h-16 w-16 text-gray-300 mx-auto" />
+														<div className="space-y-2">
+															<h4 className="text-lg font-medium text-gray-500">No hay turnos pendientes</h4>
+															<p className="text-sm text-gray-400">Los turnos enviados por repartidores aparecerán aquí</p>
+														</div>
+													</div>
+												</CardContent>
+											</Card>
+										) : (
+											<div className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+												{getFilteredPendingShifts().map((shift) => (
+													<PendingShiftCard key={shift.id} shift={shift} onReview={handleReviewShift} />
+												))}
 											</div>
-										</div>
-									</CardContent>
-								</Card>
-							) : (
-								<div className="space-y-4">
-									{getFilteredPendingShifts().map((shift) => (
-										<PendingShiftCard key={shift.id} shift={shift} onReview={handleReviewShift} />
-									))}
-								</div>
-							)}
-						</TabsContent>
+										)}
+									</TabsContent>
 
-						<TabsContent value="reviewed" className="space-y-0">
-							{getFilteredReviewedShifts().length === 0 ? (
-								<Card className="border-gray-200 shadow-lg">
-									<CardContent className="pt-6">
-										<div className="text-center py-12 space-y-4">
-											<Calendar className="h-16 w-16 text-gray-300 mx-auto" />
-											<div className="space-y-2">
-												<h4 className="text-lg font-medium text-gray-500">No hay turnos revisados</h4>
-												<p className="text-sm text-gray-400">El historial de la última semana aparecerá aquí</p>
+									<TabsContent value="reviewed" className="w-full">
+										{getFilteredReviewedShifts().length === 0 ? (
+											<Card className="border-gray-200 shadow-lg">
+												<CardContent className="pt-6">
+													<div className="text-center py-12 space-y-4">
+														<Calendar className="h-16 w-16 text-gray-300 mx-auto" />
+														<div className="space-y-2">
+															<h4 className="text-lg font-medium text-gray-500">No hay turnos revisados</h4>
+															<p className="text-sm text-gray-400">El historial de la última semana aparecerá aquí</p>
+														</div>
+													</div>
+												</CardContent>
+											</Card>
+										) : (
+											<div className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+												{getFilteredReviewedShifts().map((shift) => (
+													<ReviewedShiftCard key={shift.id} shift={shift} />
+												))}
 											</div>
-										</div>
-									</CardContent>
-								</Card>
-							) : (
-								<div className="space-y-2">
-									{getFilteredReviewedShifts().map((shift) => (
-										<ReviewedShiftCard key={shift.id} shift={shift} />
-									))}
-								</div>
-							)}
-						</TabsContent>
+										)}
+									</TabsContent>
 					</Tabs>
 				</div>
 			</div>
