@@ -51,8 +51,10 @@ export function ShiftForm({ onSubmit, onCancel }: ShiftFormProps) {
       return
     }
 
-    setErrors([])
-    setShowConfirmation(true)
+  setErrors([])
+  // Eliminar al repartidor de la lista de activos al enviar ticket a revisión
+  localStorage.removeItem(`currentShift_${userEmail}`)
+  setShowConfirmation(true)
   }
 
   const confirmSubmit = () => {

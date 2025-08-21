@@ -16,8 +16,8 @@ const handleCleanLocalDB = () => {
 	localStorage.removeItem("driverShifts");
 	localStorage.removeItem("pendingShifts");
 	localStorage.removeItem("reviewedShifts");
-	// Limpiar datos individuales de cada repartidor (asumiendo IDs del 1 al 12)
-	for (let i = 1; i <= 12; i++) {
+	// Limpiar datos individuales de cada repartidor (ahora IDs del 1 al 20)
+	for (let i = 1; i <= 20; i++) {
 		localStorage.removeItem(`currentShift_${i}`);
 		localStorage.removeItem(`currentShiftDraft_${i}`);
 		localStorage.removeItem(`shiftSubmitted_${i}`);

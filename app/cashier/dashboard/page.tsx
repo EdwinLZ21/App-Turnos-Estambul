@@ -72,7 +72,7 @@ export default function CashierDashboard() {
 
 	useEffect(() => {
 		const drivers: string[] = []
-		for (let i = 1; i <= 12; i++) {
+		for (let i = 1; i <= 20; i++) {
 			const currentShift = localStorage.getItem(`currentShift_${i}`)
 			if (currentShift) {
 				drivers.push(i.toString())
@@ -139,15 +139,9 @@ export default function CashierDashboard() {
 					// Eliminar el turno actual y borrador solo si no hay un nuevo turno pendiente
 					localStorage.removeItem(`currentShift_${driverId}`)
 					localStorage.removeItem(`currentShiftDraft_${driverId}`)
-			// Actualizar repartidores activos
-			const drivers: string[] = []
-			for (let i = 1; i <= 12; i++) {
-				const currentShift = localStorage.getItem(`currentShift_${i}`)
-				if (currentShift) {
-					drivers.push(i.toString())
-				}
-			}
-			setActiveDrivers(drivers)
+			// Eliminar al repartidor de la lista de activos al enviar ticket a revisión
+			localStorage.removeItem(`currentShift_${driverId}`)
+			setActiveDrivers((prev) => prev.filter((id) => id !== driverId))
 
 			setPendingShifts((prev) => prev.filter((shift) => shift.id !== shiftId))
 			setReviewedShifts((prev) => {
@@ -347,49 +341,49 @@ export default function CashierDashboard() {
 							</TabsTrigger>
 						</TabsList>
 
-									<TabsContent value="pending" className="w-full">
-										{getFilteredPendingShifts().length === 0 ? (
-											<Card className="border-gray-200 shadow-lg">
-												<CardContent className="pt-6">
-													<div className="text-center py-12 space-y-4">
-														<CheckCircle className="h-16 w-16 text-gray-300 mx-auto" />
-														<div className="space-y-2">
-															<h4 className="text-lg font-medium text-gray-500">No hay turnos pendientes</h4>
-															<p className="text-sm text-gray-400">Los turnos enviados por repartidores aparecerán aquí</p>
-														</div>
-													</div>
-												</CardContent>
-											</Card>
-										) : (
-											<div className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-												{getFilteredPendingShifts().map((shift) => (
-													<PendingShiftCard key={shift.id} shift={shift} onReview={handleReviewShift} />
-												))}
-											</div>
-										)}
-									</TabsContent>
+														<TabsContent value="pending" className="w-full">
+															{getFilteredPendingShifts().length === 0 ? (
+																<Card className="border-gray-200 shadow-lg">
+																	<CardContent className="pt-6">
+																		<div className="text-center py-12 space-y-4">
+																			<CheckCircle className="h-16 w-16 text-gray-300 mx-auto" />
+																			<div className="space-y-2">
+																				<h4 className="text-lg font-medium text-gray-500">No hay turnos pendientes</h4>
+																				<p className="text-sm text-gray-400">Los turnos enviados por repartidores aparecerán aquí</p>
+																			</div>
+																		</div>
+																	</CardContent>
+																</Card>
+															) : (
+																<div className="space-y-4 w-full">
+																	{getFilteredPendingShifts().map((shift) => (
+																		<PendingShiftCard key={shift.id} shift={shift} onReview={handleReviewShift} />
+																	))}
+																</div>
+															)}
+														</TabsContent>
 
-									<TabsContent value="reviewed" className="w-full">
-										{getFilteredReviewedShifts().length === 0 ? (
-											<Card className="border-gray-200 shadow-lg">
-												<CardContent className="pt-6">
-													<div className="text-center py-12 space-y-4">
-														<Calendar className="h-16 w-16 text-gray-300 mx-auto" />
-														<div className="space-y-2">
-															<h4 className="text-lg font-medium text-gray-500">No hay turnos revisados</h4>
-															<p className="text-sm text-gray-400">El historial de la última semana aparecerá aquí</p>
-														</div>
-													</div>
-												</CardContent>
-											</Card>
-										) : (
-											<div className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-												{getFilteredReviewedShifts().map((shift) => (
-													<ReviewedShiftCard key={shift.id} shift={shift} />
-												))}
-											</div>
-										)}
-									</TabsContent>
+														<TabsContent value="reviewed" className="w-full">
+															{getFilteredReviewedShifts().length === 0 ? (
+																<Card className="border-gray-200 shadow-lg">
+																	<CardContent className="pt-6">
+																		<div className="text-center py-12 space-y-4">
+																			<Calendar className="h-16 w-16 text-gray-300 mx-auto" />
+																			<div className="space-y-2">
+																				<h4 className="text-lg font-medium text-gray-500">No hay turnos revisados</h4>
+																				<p className="text-sm text-gray-400">El historial de la última semana aparecerá aquí</p>
+																			</div>
+																		</div>
+																	</CardContent>
+																</Card>
+															) : (
+																<div className="space-y-4 w-full">
+																	{getFilteredReviewedShifts().map((shift) => (
+																		<ReviewedShiftCard key={shift.id} shift={shift} />
+																	))}
+																</div>
+															)}
+														</TabsContent>
 					</Tabs>
 				</div>
 			</div>
