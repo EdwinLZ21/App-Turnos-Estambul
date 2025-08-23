@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, AlertCircle, CheckCircle, DollarSign } from "lucide-react"
+import { ShiftManager } from "@/lib/shift-manager"
 import { InactivityMonitor } from "@/components/inactivity-monitor"
 import Image from "next/image"
 
@@ -207,7 +208,7 @@ export default function ShiftForm() {
     return errors
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitted(true)
     const validationErrors = validateForm()
@@ -219,35 +220,58 @@ export default function ShiftForm() {
 
     setErrors([])
 
-    // Crear un turno pendiente para el cajero
-    const driverId = localStorage.getItem("userId") || ""
-    const pendingShift = {
-      ...currentShift,
-      id: Date.now().toString(), // ID único temporal
-      driverId: driverId, // Agregar el ID del repartidor
-      status: "pending" as const,
-      submittedAt: new Date().toISOString(),
+    try {
+      const driverId = localStorage.getItem("userId") || ""
+      const driverEmail = `driver${driverId}@estambul.com`
+
+      console.log('📤 Enviando turno a Supabase...')
+      console.log('Datos del turno:', currentShift)
+
+      // CREAR Y GUARDAR EN SUPABASE
+      const shift = ShiftManager.createShift(
+        driverEmail,
+        currentShift.entryTime,
+        currentShift.exitTime,
+        currentShift.totalTickets,
+        currentShift.totalEarned,
+        currentShift.incidents
+      )
+
+      const success = await ShiftManager.saveShift(shift)
+
+      if (success) {
+        console.log('✅ Turno guardado exitosamente!')
+
+        // 1. Prepara el objeto pendingShift
+        const pendingShift = {
+          ...currentShift,
+          id: shift.id,
+          driverId: driverId,
+          status: "pending" as const,
+          submittedAt: new Date().toISOString(),
+        }
+
+        // 2. Guarda en localStorage para que el cajero lo vea
+        localStorage.setItem(`currentShift_${driverId}`, JSON.stringify(pendingShift))
+        localStorage.setItem(`shiftSubmitted_${driverId}`, "true")
+        // 3. **Elimina** el borrador y el turno activo para que no vuelva a listarse
+        localStorage.removeItem(`currentShiftDraft_${driverId}`)
+        localStorage.removeItem(`currentShift_${driverId}`) 
+
+        // 4. Notifica a otros listeners (modal de login, dashboard) que cambió el storage
+        window.dispatchEvent(new Event('storage'))
+        // 5. Redirige al repartidor
+        router.push("/driver/dashboard")
+      } else {
+        console.log('❌ Error al guardar en Supabase')
+        setErrors(["Error al guardar en la base de datos. Intenta nuevamente."])
+      }
+    } catch (error) {
+    console.error("Error al enviar turno:", error)
+    setErrors(["Error de conexión. Verifica tu conexión a internet."])
     }
-
-  // Guardar en localStorage para el cajero
-  const existingPendingShifts = JSON.parse(localStorage.getItem("pendingShifts") || "[]")
-  // Eliminar posibles turnos previos pendientes del mismo repartidor (evita duplicados)
-  const filteredPendingShifts = existingPendingShifts.filter((shift: any) => shift.driverId !== driverId)
-  const updatedPendingShifts = [...filteredPendingShifts, pendingShift]
-  localStorage.setItem("pendingShifts", JSON.stringify(updatedPendingShifts))
-
-  // Guardar como turno actual del repartidor
-  localStorage.setItem(`currentShift_${driverId}`, JSON.stringify(pendingShift))
-  localStorage.setItem(`shiftSubmitted_${driverId}`, "true")
-
-  // NO eliminar el borrador para mantener el estado en el panel
-  // localStorage.removeItem(`currentShiftDraft_${driverId}`)
-
-  // Forzar evento de storage para que el panel de caja se actualice
-  window.dispatchEvent(new Event('storage'))
-
-  router.push("/driver/dashboard")
   }
+
 
   const handleBackToPanel = () => {
     const userId = localStorage.getItem("userId") || ""

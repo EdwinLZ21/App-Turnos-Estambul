@@ -10,6 +10,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
+import { User, Calendar, Clock, CheckCircle } from "lucide-react"
+
+interface ActiveDriver {
+  driverId: string
+  homeDeliveryOrders: string
+  onlineOrders: string
+  molaresOrderNumbers?: string
+}
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -22,7 +31,41 @@ export default function LoginPage() {
   const [adminPass, setAdminPass] = useState("")
   const [adminError, setAdminError] = useState("")
   const [adminLoading, setAdminLoading] = useState(false)
+
+
+  
+  // 🚀 NUEVOS HOOKS PARA REPARTIDORES ACTIVOS
+  const [showActive, setShowActive] = useState(false)
+  const [activeDrivers, setActiveDrivers] = useState<ActiveDriver[]>([])
+
   const router = useRouter()
+
+    // 🚀 NUEVA FUNCIÓN PARA LEER REPARTIDORES ACTIVOS
+  const fetchActiveFromLocal = () => {
+    const drivers: ActiveDriver[] = []
+    for (let i = 1; i <= 20; i++) {
+      const raw = localStorage.getItem(`currentShift_${i}`)
+      if (!raw) continue
+      try {
+        const shift = JSON.parse(raw) as {
+          homeDeliveryOrders: string
+          onlineOrders: string
+          molaresOrderNumbers: string
+          molaresOrders: boolean
+        }
+        drivers.push({
+          driverId: i.toString(),
+          homeDeliveryOrders: shift.homeDeliveryOrders || "Sin pedidos",
+          onlineOrders: shift.onlineOrders || "Sin pedidos",
+          molaresOrderNumbers: shift.molaresOrders ? shift.molaresOrderNumbers : undefined,
+        })
+      } catch {
+        // Ignorar draft corrupto
+      }
+    }
+    setActiveDrivers(drivers)
+    setShowActive(true)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -265,6 +308,111 @@ export default function LoginPage() {
             </Button>
           </form>
           {/* Removed test credentials block */}
+
+          {/* 🚀 BOTÓN PARA VER REPARTIDORES ACTIVOS */}
+          <div className="mt-6 text-center w-full">
+            <Button onClick={fetchActiveFromLocal} variant="outline">
+              Ver repartidores activos
+            </Button>
+          </div>
+
+          {/* 🚀 MODAL PARA VER REPARTIDORES ACTIVOS */}
+          {showActive && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+              <div className="bg-white rounded-lg shadow-lg w-full max-w-[1200px] max-h-[90vh] overflow-y-auto">
+                
+                {/* Cabecera: título centrado + botón de cerrar */}
+                <div className="relative flex items-center justify-center p-4 border-b bg-white sticky top-0 z-10">
+                  <h2 className="text-lg font-semibold">Repartidores activos</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowActive(false)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 p-0">
+                    ✕
+                  </Button>
+                </div>
+
+                {/* Grilla de tarjetas */}
+                <div className="p-6">
+                  {activeDrivers.length > 0 ? (
+                    <div
+                      className="
+                        grid 
+                        gap-6 
+                        grid-cols-[repeat(auto-fit,minmax(260px,1fr))] 
+                        justify-center
+                      "
+                    >
+                      {activeDrivers.map((d) => {
+                        const homeArr = d.homeDeliveryOrders.split(/\s*,\s*/).filter(Boolean)
+                        const onlineArr = d.onlineOrders.split(/\s*,\s*/).filter(Boolean)
+                        const molaresArr = d.molaresOrderNumbers
+                          ? d.molaresOrderNumbers.split(/\s*,\s*/).filter(Boolean)
+                          : []
+
+                        return (
+                          <div
+                            key={d.driverId}
+                            className="flex flex-col items-center p-4 bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-2xl shadow-lg"
+                          >
+                            {/* Icono y nombre */}
+                            <div className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center mb-3">
+                              <User className="h-6 w-6 text-blue-700" />
+                            </div>
+                            <span className="font-semibold text-blue-800 text-base mb-4">
+                              Repartidor {d.driverId}
+                            </span>
+
+                            {/* Domicilio */}
+                            <div className="w-full mb-3 text-center">
+                              <p className="text-sm text-gray-700 font-medium mb-1">Domicilio:</p>
+                              <div className="flex flex-wrap justify-center gap-1">
+                                {homeArr.map((num, i) => (
+                                  <span key={i} className="text-sm font-mono text-blue-700 whitespace-nowrap">
+                                    {num}{i < homeArr.length - 1 ? "," : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Online */}
+                            <div className="w-full mb-3 text-center">
+                              <p className="text-sm text-gray-700 font-medium mb-1">Online:</p>
+                              <div className="flex flex-wrap justify-center gap-1">
+                                {onlineArr.map((num, i) => (
+                                  <span key={i} className="text-sm font-mono text-blue-700 whitespace-nowrap">
+                                    {num}{i < onlineArr.length - 1 ? "," : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Molares */}
+                            {molaresArr.length > 0 && (
+                              <div className="w-full text-center">
+                                <p className="text-sm text-gray-700 font-medium mb-1">Molares:</p>
+                                <div className="flex flex-wrap justify-center gap-1">
+                                  {molaresArr.map((num, i) => (
+                                    <span key={i} className="text-sm font-mono text-blue-700 whitespace-nowrap">
+                                      {num}{i < molaresArr.length - 1 ? "," : ""}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-center text-gray-500">No hay repartidores activos</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

@@ -118,23 +118,107 @@ export class ShiftManager {
    * Get all shifts for a specific driver
    */
   static async getDriverShifts(driverEmail: string): Promise<Shift[]> {
-    const { supabase } = await import('./supabase-client')
-    const { data, error } = await supabase
-      .from('shifts')
-      .select('*')
-      .eq('driverEmail', driverEmail)
-    if (error) return []
-    return data || []
-  }
+    try {
+        const { supabase } = await import('./supabase-client')
+        const { data, error } = await supabase
+            .from('driver_shifts')  // Usar driver_shifts
+            .select('*')
+            .eq('driver_email', driverEmail)  // Usar driver_email
+
+        if (error) {
+            console.error('Error al obtener turnos:', error)
+            return []
+        }
+
+        // Mapear de driver_shifts a la interfaz Shift
+        return (data || []).map(row => ({
+            id: row.id,
+            date: row.date,
+            entryTime: row.entry_time,
+            exitTime: row.exit_time,
+            hoursWorked: row.hours_worked,
+            ticketsDelivered: row.tickets_delivered,
+            netTotal: row.net_total,
+            incidents: row.incidents,
+            status: row.status,
+            driverEmail: row.driver_email,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        }))
+    } catch (error) {
+        console.error('Error de conexión:', error)
+        return []
+    }
+}
 
   /**
    * Save shift for a driver
    */
   static async saveShift(shift: Shift): Promise<boolean> {
-    const { supabase } = await import('./supabase-client')
-    const { error } = await supabase.from('shifts').insert([shift])
-    return !error
+    try {
+      const { supabase } = await import('./supabase-client')
+      
+      // Obtener datos adicionales del localStorage
+      const userId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "" : ""
+      const currentShiftData = typeof window !== 'undefined' ? 
+        JSON.parse(localStorage.getItem(`currentShiftDraft_${userId}`) || '{}') : {}
+      
+      console.log('📤 Datos a mapear:', currentShiftData)
+      
+      // Mapear los datos al esquema de driver_shifts
+      const shiftData = {
+        driver_email: shift.driverEmail,
+        date: shift.date,
+        entry_time: shift.entryTime,
+        exit_time: shift.exitTime,
+        hours_worked: shift.hoursWorked,
+        tickets_delivered: shift.ticketsDelivered,
+        net_total: shift.netTotal,
+        incidents: shift.incidents,
+        status: shift.status,
+        cash_change: currentShiftData.cashChange || 50.1,
+        home_delivery_orders: currentShiftData.homeDeliveryOrders ?
+          currentShiftData.homeDeliveryOrders.split(',').map((n: string) => parseInt(n.trim())).filter((n: number) => !isNaN(n)) : [],
+        online_orders: currentShiftData.onlineOrders ?
+          currentShiftData.onlineOrders.split(',').map((n: string) => n.trim()).filter((n: string) => n) : [],
+        molares_orders: currentShiftData.molaresOrders || false,
+        molares_order_numbers: currentShiftData.molaresOrderNumbers ?
+          currentShiftData.molaresOrderNumbers.split(',').map((n: string) => n.trim()).filter((n: string) => n) : [],
+        total_tickets: currentShiftData.totalTickets || 0,
+        total_amount: currentShiftData.totalAmount || 0,
+        total_earned: currentShiftData.totalEarned || 0,
+        total_sales_pedidos: currentShiftData.totalSalesPedidos || 0,
+        total_datafono: currentShiftData.totalDatafono || 0,
+        total_caja_neto: currentShiftData.totalCajaNeto || 0
+      }
+
+      console.log('📤 Datos a enviar a driver_shifts:', shiftData)
+
+      const { data, error } = await supabase
+        .from('driver_shifts')
+        .insert([shiftData])
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ ERROR DETALLADO de Supabase:', error)
+        return false
+      }
+
+      // 🚀 Guardar el UUID del turno para que el repartidor pueda consultarlo
+      if (data?.id) {
+        localStorage.setItem(`currentShiftId_${userId}`, data.id)
+      }
+
+      console.log('✅ Turno guardado exitosamente en driver_shifts:', data)
+      return true
+      
+    } catch (error) {
+      console.error('💥 ERROR DE CONEXIÓN:', error)
+      return false
+    }
   }
+
 
   /**
    * Update an existing shift
@@ -142,7 +226,7 @@ export class ShiftManager {
   static async updateShift(updatedShift: Shift): Promise<boolean> {
     const { supabase } = await import('./supabase-client')
     const { error } = await supabase
-      .from('shifts')
+      .from('driver_shifts')
       .update(updatedShift)
       .eq('id', updatedShift.id)
     return !error
@@ -154,7 +238,7 @@ export class ShiftManager {
   static async getAllShifts(): Promise<Shift[]> {
     const { supabase } = await import('./supabase-client')
     const { data, error } = await supabase
-      .from('shifts')
+      .from('driver_shifts')
       .select('*')
     if (error) return []
     return (data || []).sort(
@@ -184,7 +268,7 @@ export class ShiftManager {
   static async reviewShift(shiftId: string, reviewedBy: string, reviewNotes?: string): Promise<boolean> {
     const { supabase } = await import('./supabase-client')
     const { data, error } = await supabase
-      .from('shifts')
+      .from('driver_shifts')
       .select('*')
       .eq('id', shiftId)
       .single()
@@ -323,7 +407,7 @@ export class ShiftManager {
    */
   static async clearAllShifts(): Promise<boolean> {
     const { supabase } = await import('./supabase-client')
-    const { error } = await supabase.from('shifts').delete().neq('id', '')
+    const { error } = await supabase.from('driver_shifts').delete().neq('id', '')
     return !error
   }
 }

@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, User, Calendar, CheckCircle, Filter, LogOut, ChevronUp, ChevronDown } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase-client"
 import { useRouter } from "next/navigation"
 
 interface ShiftData {
@@ -56,19 +57,19 @@ export default function CashierDashboard() {
 	useEffect(() => {
 		const id = localStorage.getItem("userId") || ""
 		setUserId(id)
-		loadShifts()
-		
-		// Escuchar cambios en localStorage
+
+		loadShifts()  // ahora carga desde Supabase
+
 		const handleStorageChange = () => {
 			loadShifts()
 		}
-		
+
 		window.addEventListener('storage', handleStorageChange)
-		
 		return () => {
 			window.removeEventListener('storage', handleStorageChange)
 		}
 	}, [])
+
 
 	useEffect(() => {
 		const drivers: string[] = []
@@ -84,20 +85,87 @@ export default function CashierDashboard() {
 	/**
 	 * Carga los turnos pendientes y revisados desde localStorage.
 	 */
-	const loadShifts = () => {
-		try {
-			// Cargar turnos pendientes desde localStorage
-			const pending = JSON.parse(localStorage.getItem("pendingShifts") || "[]") as ShiftData[]
-			const reviewed = JSON.parse(localStorage.getItem("reviewedShifts") || "[]") as ShiftData[]
-			
-			// Filtrar solo turnos pendientes
-			setPendingShifts(pending.filter(shift => shift.status === "pending"))
-			setReviewedShifts(reviewed)
-		} catch {
-			setPendingShifts([])
-			setReviewedShifts([])
-		}
-	}
+	const loadShifts = async () => {
+    try {
+        const { data: pending, error: pendingError } = await supabase
+        .from('driver_shifts')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+
+        const { data: reviewed, error: reviewedError } = await supabase
+        .from('driver_shifts')
+        .select('*')
+        .eq('status', 'reviewed')
+        .order('reviewed_at', { ascending: false })
+
+        if (pendingError || reviewedError) {
+        console.error('Error al cargar los turnos:', pendingError || reviewedError)
+        setPendingShifts([])
+        setReviewedShifts([])
+        return
+        }
+
+        // MAPEAR los datos de Supabase a la interfaz ShiftData
+        const mappedPending = (pending || []).map(row => ({
+            id: row.id,
+            date: row.date,
+            entryTime: row.entry_time,
+            exitTime: row.exit_time,
+            cashChange: row.cash_change ?? 0,
+            homeDeliveryOrders: row.home_delivery_orders ? row.home_delivery_orders.join(',') : '',
+            onlineOrders: row.online_orders ? row.online_orders.join(',') : '',
+            incidents: row.incidents || '',
+            hoursWorked: row.hours_worked ?? 0,
+            totalTickets: row.total_tickets ?? 0,
+            totalAmount: row.total_amount ?? 0,
+            totalEarned: row.total_earned ?? 0,
+            molaresOrders: row.molares_orders ?? false,
+            molaresOrderNumbers: row.molares_order_numbers ? row.molares_order_numbers.join(',') : '',
+            totalSalesPedidos: row.total_sales_pedidos ?? 0,
+            totalDatafono: row.total_datafono ?? 0,
+            totalCajaNeto: row.total_caja_neto ?? 0,
+            driverId: row.driver_email?.replace('@estambul.com', '').replace('driver', '') || '',
+            status: row.status as "pending" | "reviewed" | "unreviewed",
+            reviewedBy: row.reviewed_by,
+            reviewedAt: row.reviewed_at,
+            reviewNotes: row.review_notes
+        }))
+
+        const mappedReviewed = (reviewed || []).map(row => ({
+            // Same mapping as above
+            id: row.id,
+            date: row.date,
+            entryTime: row.entry_time,
+            exitTime: row.exit_time,
+            cashChange: row.cash_change ?? 0,
+            homeDeliveryOrders: row.home_delivery_orders ? row.home_delivery_orders.join(',') : '',
+            onlineOrders: row.online_orders ? row.online_orders.join(',') : '',
+            incidents: row.incidents || '',
+            hoursWorked: row.hours_worked ?? 0,
+            totalTickets: row.total_tickets ?? 0,
+            totalAmount: row.total_amount ?? 0,
+            totalEarned: row.total_earned ?? 0,
+            molaresOrders: row.molares_orders ?? false,
+            molaresOrderNumbers: row.molares_order_numbers ? row.molares_order_numbers.join(',') : '',
+            totalSalesPedidos: row.total_sales_pedidos ?? 0,
+            totalDatafono: row.total_datafono ?? 0,
+            totalCajaNeto: row.total_caja_neto ?? 0,
+            driverId: row.driver_email?.replace('@estambul.com', '').replace('driver', '') || '',
+            status: row.status as "pending" | "reviewed" | "unreviewed",
+            reviewedBy: row.reviewed_by,
+            reviewedAt: row.reviewed_at,
+            reviewNotes: row.review_notes
+        }))
+
+        setPendingShifts(mappedPending)
+        setReviewedShifts(mappedReviewed)
+    } catch (error) {
+        console.error('Error al cargar turnos:', error)
+        setPendingShifts([])
+        setReviewedShifts([])
+    }
+}
 
 	/**
 	 * Cierra sesión y limpia datos de usuario.
@@ -111,50 +179,31 @@ export default function CashierDashboard() {
 	/**
 	 * Marca un turno como revisado y actualiza el estado del repartidor.
 	 */
-	const handleReviewShift = (shiftId: string, reviewNotes: string, cashierNumber: string) => {
-		const shiftToReview = pendingShifts.find((shift) => shift.id === shiftId)
-		if (shiftToReview) {
-			const reviewedShift: ShiftData = {
-				...shiftToReview,
-				status: "reviewed",
-				reviewedBy: `Cajero ${cashierNumber}`,
-				reviewedAt: new Date().toISOString(),
-				reviewNotes,
-			}
-
-					// Actualizar el estado del repartidor
-					const driverId = shiftToReview.driverId
-					const driverShifts = JSON.parse(localStorage.getItem("driverShifts") || "{}")
-					if (!driverShifts[driverId]) {
-						driverShifts[driverId] = []
-					}
-					// Agregar el turno revisado a la lista del repartidor
-					driverShifts[driverId].push({
-						...reviewedShift,
-						reviewedAt: new Date().toISOString(),
-						reviewedBy: `Cajero ${cashierNumber}`,
-					})
-					localStorage.setItem("driverShifts", JSON.stringify(driverShifts))
-					localStorage.setItem(`shiftSubmitted_${driverId}`, "false")
-					// Eliminar el turno actual y borrador solo si no hay un nuevo turno pendiente
-					localStorage.removeItem(`currentShift_${driverId}`)
-					localStorage.removeItem(`currentShiftDraft_${driverId}`)
-			// Eliminar al repartidor de la lista de activos al enviar ticket a revisión
-			localStorage.removeItem(`currentShift_${driverId}`)
-			setActiveDrivers((prev) => prev.filter((id) => id !== driverId))
-
-			setPendingShifts((prev) => prev.filter((shift) => shift.id !== shiftId))
-			setReviewedShifts((prev) => {
-				const updated = [reviewedShift, ...prev]
-				try {
-					const remaining = pendingShifts.filter((s) => s.id !== shiftId)
-					localStorage.setItem("pendingShifts", JSON.stringify(remaining))
-					localStorage.setItem("reviewedShifts", JSON.stringify(updated))
-				} catch {}
-				return updated
+	const handleReviewShift = async (shiftId: string, reviewNotes: string, cashierNumber: string) => {
+		try {
+			const { error } = await supabase
+			.from('driver_shifts')
+			.update({
+				status: 'reviewed',
+				reviewed_by: `Cajero ${cashierNumber}`,
+				reviewed_at: new Date().toISOString(),
+				review_notes: reviewNotes,
 			})
+			.eq('id', shiftId)
+
+			if (error) {
+			console.error('Error al actualizar el turno:', error)
+			return
+			}
+			
+			// Recargar turnos para actualizar UI
+			await loadShifts()
+
+		} catch (err) {
+			console.error('Error al procesar la revisión:', err)
 		}
 	}
+
 
 	const handleClosePendingShifts = () => {
 		try {
@@ -290,44 +339,101 @@ export default function CashierDashboard() {
 							</div>
 							<span className="text-base text-gray-500">Actualmente en reparto</span>
 						</div>
+
 						{activeDrivers.length > 0 ? (
 							<div className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
 								{activeDrivers.map((id) => {
-									const shiftRaw = typeof window !== 'undefined' ? localStorage.getItem(`currentShift_${id}`) : null
-									let pedidosDomicilio = "Sin pedidos"
-									let pedidosOnline = "Sin pedidos"
-									let pedidosMolares = ""
-									if (shiftRaw) {
-										try {
-											const shift: ShiftData = JSON.parse(shiftRaw)
-											pedidosDomicilio = shift.homeDeliveryOrders || "Sin pedidos"
-											pedidosOnline = shift.onlineOrders || "Sin pedidos"
-											if (shift.molaresOrders && shift.molaresOrderNumbers) {
-												pedidosMolares = ` | Molares: ${shift.molaresOrderNumbers}`
-											}
-										} catch {}
+								// Leer el draft
+								const raw = typeof window !== "undefined"
+									? localStorage.getItem(`currentShift_${id}`)
+									: null
+
+								let homeStr = "Sin pedidos"
+								let onlineStr = "Sin pedidos"
+								let molaresStr: string | null = null
+
+								if (raw) {
+									try {
+									const shift: ShiftData = JSON.parse(raw)
+									homeStr = shift.homeDeliveryOrders || "Sin pedidos"
+									onlineStr = shift.onlineOrders || "Sin pedidos"
+									if (shift.molaresOrders && shift.molaresOrderNumbers) {
+										molaresStr = shift.molaresOrderNumbers
 									}
-									return (
-										<div key={id} className="flex flex-col items-center justify-center min-h-[150px] bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-2xl px-6 py-5 shadow-md overflow-hidden">
-											<div className="w-14 h-14 rounded-full bg-blue-200 flex items-center justify-center mb-2">
-												<User className="h-8 w-8 text-blue-700" />
-											</div>
-											<span className="font-bold text-blue-800 text-lg mb-1 truncate">Repartidor {id}</span>
-											<div className="flex flex-col gap-1 w-full text-center">
-												<span className="text-sm text-gray-700 truncate flex items-center justify-center gap-1"><Clock className="h-4 w-4 text-blue-400" /> Domicilio: <span className="font-mono text-blue-700 break-all">{pedidosDomicilio}</span></span>
-												<span className="text-sm text-gray-700 truncate flex items-center justify-center gap-1"><Calendar className="h-4 w-4 text-blue-400" /> Online: <span className="font-mono text-blue-700 break-all">{pedidosOnline}</span></span>
-												{pedidosMolares && (
-													<span className="text-sm text-gray-700 truncate flex items-center justify-center gap-1"><CheckCircle className="h-4 w-4 text-green-400" /> Molares: <span className="font-mono text-blue-700 break-all">{pedidosMolares.replace(' | Molares: ', '')}</span></span>
-												)}
-											</div>
+									} catch {}
+								}
+
+								// Arrays limpios
+								const homeArr = homeStr.split(/\s*,\s*/).filter(Boolean)
+								const onlineArr = onlineStr.split(/\s*,\s*/).filter(Boolean)
+								const molaresArr = molaresStr ? molaresStr.split(/\s*,\s*/).filter(Boolean) : []
+
+								return (
+									<div
+									key={id}
+									className="flex flex-col items-center justify-start p-4 bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-2xl shadow-md overflow-visible"
+									>
+									{/* Icono y nombre */}
+									<div className="w-14 h-14 rounded-full bg-blue-200 flex items-center justify-center mb-2">
+										<User className="h-8 w-8 text-blue-700" />
+									</div>
+									<span className="font-bold text-blue-800 text-lg mb-2">
+										Repartidor {id}
+									</span>
+
+									{/* Domicilio */}
+									<div className="w-full mb-3 text-center">
+										<p className="text-sm text-gray-700 font-medium mb-1">
+											Domicilio:
+										</p>
+										<div className="flex flex-wrap justify-center gap-2">
+										{homeArr.map((num, idx) => (
+											<span
+											key={num}
+											className="text-sm font-mono text-blue-700 whitespace-nowrap"
+											>
+											{num}
+											{idx < homeArr.length - 1 ? "," : ""}
+											</span>
+										))}
 										</div>
-									)
+									</div>
+
+									{/* Online */}
+									<div className="w-full mb-3 text-center">
+										<p className="text-sm text-gray-700 font-medium mb-1">Online:</p>
+										<div className="flex flex-wrap justify-center gap-2">
+    										{onlineArr.map((num, idx) => (
+      											<span key={num} className="text-sm font-mono text-blue-700 whitespace-nowrap">
+        											{num}{idx < onlineArr.length - 1 ? "," : ""}
+      											</span>
+    										))}
+  										</div>
+									</div>
+
+									{/* Molares */}
+									{molaresArr.length > 0 && (
+  										<div className="w-full mb-3 text-center">
+											<p className="text-sm text-gray-700 font-medium mb-1">Molares:</p>
+											<div className="flex flex-wrap justify-center gap-2">
+      											{molaresArr.map((num, idx) => (
+        										<span key={num} className="text-sm font-mono text-blue-700 whitespace-nowrap">
+          											{num}{idx < molaresArr.length - 1 ? "," : ""}
+        										</span>
+      											))}
+    										</div>
+  										</div>
+									)}
+									</div>
+								)
 								})}
 							</div>
 						) : (
-							<div className="text-gray-400 text-sm">No hay repartidores activos</div>
+						<div className="text-gray-400 text-sm">No hay repartidores activos</div>
 						)}
+
 					</div>
+
 
 					{/* Filtros eliminados */}
 
@@ -457,12 +563,12 @@ function PendingShiftCard({ shift, onReview }: { shift: ShiftData; onReview: (id
 					</div>
 					<div className="text-center">
 						<p className="text-gray-500 text-xs">Cobrado</p>
-						<p className="font-medium">{shift.totalEarned.toFixed(2)} €</p>
+						<p className="font-medium">{(shift.totalEarned ?? 0).toFixed(2)} €</p>
 					</div>
 					<div className="text-center">
 						<p className="text-gray-500 text-xs">Caja neto</p>
 						<div className="bg-green-100 text-green-800 px-2 py-1 rounded-lg border border-green-200">
-							<p className="font-bold text-sm">{shift.totalCajaNeto.toFixed(2)} €</p>
+							<p className="font-bold text-sm">{(shift.totalCajaNeto ?? 0).toFixed(2)} €</p>
 						</div>
 					</div>
 					{shift.molaresOrders && (
@@ -497,11 +603,11 @@ function PendingShiftCard({ shift, onReview }: { shift: ShiftData; onReview: (id
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<div className="space-y-2">
 							<p className="text-sm font-medium text-gray-700">Total Venta Pedidos</p>
-							<p className="text-lg font-semibold text-blue-600">{shift.totalSalesPedidos.toFixed(2)} €</p>
+							<p className="text-lg font-semibold text-blue-600">{(shift.totalSalesPedidos ?? 0).toFixed(2)} €</p>
 						</div>
 						<div className="space-y-2">
 							<p className="text-sm font-medium text-gray-700">Total Datafono</p>
-							<p className="text-lg font-semibold text-blue-600">{shift.totalDatafono.toFixed(2)} €</p>
+							<p className="text-lg font-semibold text-blue-600">{(shift.totalDatafono ?? 0).toFixed(2)} €</p>
 						</div>
 						<div className="space-y-2 flex items-center gap-2">
 							<div>
