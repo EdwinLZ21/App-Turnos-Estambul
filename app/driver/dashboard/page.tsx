@@ -118,7 +118,7 @@ export default function DriverDashboard() {
       .select('*')
       .eq('driver_id', userId)
       .eq('status', 'reviewed')
-      .order('date', { ascending: false })
+      .order('updated_at', { ascending: false })
       .limit(1)
       .single()
       .then(({ data, error }) => {
