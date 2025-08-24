@@ -1,5 +1,4 @@
-
-"use client"
+  "use client"
 import { AuthGuard } from "@/components/auth-guard"
 import { InactivityMonitor } from "@/components/inactivity-monitor"
 import Image from "next/image"
@@ -30,100 +29,111 @@ interface ShiftData {
   totalSalesPedidos: number
   totalDatafono: number
   totalCajaNeto: number
-  status: string // Added status field
+  status: string
+}
+
+function mapShift(row: any): ShiftData {
+  return {
+    id: row.id,
+    date: row.date,
+    entryTime: row.entry_time,
+    exitTime: row.exit_time,
+    cashChange: row.cash_change ?? 0,
+    homeDeliveryOrders: Array.isArray(row.home_delivery_orders)
+      ? row.home_delivery_orders.join(',')
+      : '',
+    onlineOrders: Array.isArray(row.online_orders)
+      ? row.online_orders.join(',')
+      : '',
+    incidents: row.incidents || '',
+    hoursWorked: row.hours_worked ?? 0,
+    totalTickets: row.total_tickets ?? 0,
+    totalAmount: row.total_amount ?? 0,
+    totalEarned: row.total_earned ?? 0,
+    molaresOrders: row.molares_orders ?? false,
+    molaresOrderNumbers: Array.isArray(row.molares_order_numbers)
+      ? row.molares_order_numbers.join(',')
+      : '',
+    totalSalesPedidos: row.total_sales_pedidos ?? 0,
+    totalDatafono: row.total_datafono ?? 0,
+    totalCajaNeto: row.total_caja_neto ?? 0,
+    status: row.status,
+  }
 }
 
 export default function DriverDashboard() {
-  /**
-   * Panel de conductor: gestión de turnos y estado personal.
-   * Documentación de funciones principales para facilitar refactorización.
-   */
-    const router = useRouter() // --- Panel CONDUCTOR ---
-  const [userId, setUserId] = useState("")
+  const router = useRouter()
   const [previousShift, setPreviousShift] = useState<ShiftData | null>(null)
   const [currentShift, setCurrentShift] = useState<ShiftData | null>(null)
   const [currentShiftDraft, setCurrentShiftDraft] = useState<ShiftData | null>(null)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [userId, setUserId] = useState("")
 
+  // Cargar userId del cliente
   useEffect(() => {
-  const id = localStorage.getItem("userId") || ""
-  const shiftId = localStorage.getItem(`currentShiftId_${id}`)
-  if (!shiftId) return
-
-  const channel: RealtimeChannel = supabase
-    .channel(`shift-${shiftId}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "driver_shifts",
-        filter: `id=eq.${shiftId}`,
-      },
-      ({ new: updated }) => {
-        if (updated.status === "reviewed") {
-          const reviewed: ShiftData = {
-            id: updated.id,
-            date: updated.date,
-            entryTime: updated.entry_time,
-            exitTime: updated.exit_time,
-            cashChange: updated.cash_change ?? 0,
-            homeDeliveryOrders: Array.isArray(updated.home_delivery_orders)
-              ? updated.home_delivery_orders.join(",")
-              : "",
-            onlineOrders: Array.isArray(updated.online_orders)
-              ? updated.online_orders.join(",")
-              : "",
-            incidents: updated.incidents || "",
-            hoursWorked: updated.hours_worked ?? 0,
-            totalTickets: updated.total_tickets ?? 0,
-            totalAmount: updated.total_amount ?? 0,
-            totalEarned: updated.total_earned ?? 0,
-            molaresOrders: updated.molares_orders ?? false,
-            molaresOrderNumbers: Array.isArray(updated.molares_order_numbers)
-              ? updated.molares_order_numbers.join(",")
-              : "",
-            totalSalesPedidos: updated.total_sales_pedidos ?? 0,
-            totalDatafono: updated.total_datafono ?? 0,
-            totalCajaNeto: updated.total_caja_neto ?? 0,
-            status: updated.status,
-          }
-          // Actualizar UI
-          setPreviousShift(reviewed)
-          setCurrentShift(null)
-          setIsSubmitted(false)
-
-          // Limpiar borrador y estado en localStorage
-          const uid = localStorage.getItem("userId") || ""
-          localStorage.removeItem(`currentShiftDraft_${uid}`)
-          localStorage.removeItem(`currentShift_${uid}`)
-          localStorage.removeItem(`currentShiftId_${uid}`)
-          localStorage.setItem(`shiftSubmitted_${uid}`, "false")
-          // Limpiar estado React
-          setCurrentShiftDraft(null)
-        }
-
-      }
-    )
-    .subscribe()
-
-  return () => {
-    supabase.removeChannel(channel)
-  }
-}, [])
-
-  useEffect(() => {
-    const id = localStorage.getItem("userId") || ""
-    if (userId && userId !== id) clearUserData(userId)
+    const id = window.localStorage.getItem("userId") || ""
     setUserId(id)
+  }, [])
 
-    // 1) Cargar borrador local
-    const draftRaw = localStorage.getItem(`currentShiftDraft_${id}`)
+  // Suscripción realtime para turno activo
+  useEffect(() => {
+    if (!userId) return
+
+    const shiftId = localStorage.getItem(`currentShiftId_${userId}`)
+    if (!shiftId) return
+
+    const channel: RealtimeChannel = supabase
+      .channel(`shift-${shiftId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "driver_shifts", filter: `id=eq.${shiftId}` },
+        ({ new: updated }) => {
+          if (updated.status === "reviewed") {
+            setPreviousShift(mapShift(updated))
+            setCurrentShift(null)
+            setIsSubmitted(false)
+
+            localStorage.removeItem(`currentShiftDraft_${userId}`)
+            localStorage.removeItem(`currentShift_${userId}`)
+            localStorage.removeItem(`currentShiftId_${userId}`)
+            localStorage.setItem(`shiftSubmitted_${userId}`, "false")
+            setCurrentShiftDraft(null)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId])
+
+  // Cargar turno anterior, borrador y pendiente al montar o cambiar userId
+  useEffect(() => {
+    if (!userId) return
+
+    // 1) Turno anterior desde DB
+    supabase
+      .from('driver_shifts')
+      .select('*')
+      .eq('driver_id', userId)
+      .eq('status', 'reviewed')
+      .order('date', { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setPreviousShift(mapShift(data))
+        }
+      })
+
+    // 2) Borrador local
+    const draftRaw = localStorage.getItem(`currentShiftDraft_${userId}`)
     setCurrentShiftDraft(draftRaw ? JSON.parse(draftRaw) : null)
 
-    // 2) Cargar turno enviado desde la base de datos
-    const isPending = localStorage.getItem(`shiftSubmitted_${id}`) === "true"
-    const shiftId = localStorage.getItem(`currentShiftId_${id}`)
+    // 3) Turno pendiente
+    const isPending = localStorage.getItem(`shiftSubmitted_${userId}`) === "true"
+    const shiftId = localStorage.getItem(`currentShiftId_${userId}`)
     if (shiftId && isPending) {
       supabase
         .from("driver_shifts")
@@ -133,62 +143,11 @@ export default function DriverDashboard() {
         .then(({ data, error }) => {
           if (!error && data) {
             if (data.status === "reviewed") {
-              const reviewed: ShiftData = {
-                id: data.id,
-                date: data.date,
-                entryTime: data.entry_time,
-                exitTime: data.exit_time,
-                cashChange: data.cash_change ?? 0,
-                homeDeliveryOrders: Array.isArray(data.home_delivery_orders)
-                  ? data.home_delivery_orders.join(",")
-                  : "",
-                onlineOrders: Array.isArray(data.online_orders)
-                  ? data.online_orders.join(",")
-                  : "",
-                incidents: data.incidents || "",
-                hoursWorked: data.hours_worked ?? 0,
-                totalTickets: data.total_tickets ?? 0,
-                totalAmount: data.total_amount ?? 0,
-                totalEarned: data.total_earned ?? 0,
-                molaresOrders: data.molares_orders ?? false,
-                molaresOrderNumbers: Array.isArray(data.molares_order_numbers)
-                  ? data.molares_order_numbers.join(",")
-                  : "",
-                totalSalesPedidos: data.total_sales_pedidos ?? 0,
-                totalDatafono: data.total_datafono ?? 0,
-                totalCajaNeto: data.total_caja_neto ?? 0,
-                status: "reviewed",
-              }
-              setPreviousShift(reviewed)
+              setPreviousShift(mapShift(data))
               setCurrentShift(null)
               setIsSubmitted(false)
             } else {
-              setCurrentShift({
-                id: data.id,
-                date: data.date,
-                entryTime: data.entry_time,
-                exitTime: data.exit_time,
-                cashChange: data.cash_change ?? 0,
-                homeDeliveryOrders: Array.isArray(data.home_delivery_orders)
-                  ? data.home_delivery_orders.join(",")
-                  : "",
-                onlineOrders: Array.isArray(data.online_orders)
-                  ? data.online_orders.join(",")
-                  : "",
-                incidents: data.incidents || "",
-                hoursWorked: data.hours_worked ?? 0,
-                totalTickets: data.total_tickets ?? 0,
-                totalAmount: data.total_amount ?? 0,
-                totalEarned: data.total_earned ?? 0,
-                molaresOrders: data.molares_orders ?? false,
-                molaresOrderNumbers: Array.isArray(data.molares_order_numbers)
-                  ? data.molares_order_numbers.join(",")
-                  : "",
-                totalSalesPedidos: data.total_sales_pedidos ?? 0,
-                totalDatafono: data.total_datafono ?? 0,
-                totalCajaNeto: data.total_caja_neto ?? 0,
-                status: data.status,
-              })
+              setCurrentShift(mapShift(data))
               setIsSubmitted(true)
             }
           }
@@ -196,69 +155,42 @@ export default function DriverDashboard() {
     }
   }, [userId])
 
-  /**
-   * Cierra sesión y limpia datos de usuario.
-   */
+    const handleClearTurno = () => {
+      try {
+        const driverShifts = JSON.parse(localStorage.getItem("driverShifts") || "{}")
+        delete driverShifts[userId]
+        localStorage.setItem("driverShifts", JSON.stringify(driverShifts))
+        localStorage.removeItem(`currentShift_${userId}`)
+        localStorage.removeItem(`currentShiftDraft_${userId}`)
+        localStorage.removeItem(`shiftSubmitted_${userId}`)
+        setCurrentShift(null)
+        setCurrentShiftDraft(null)
+        setIsSubmitted(false)
+      } catch {}
+    }
+
+    const handleNewShift = () => {
+    // Navega antes de limpiar
+    router.push("/driver/shift-form")
+
+    // Limpia borrador y estado
+    localStorage.removeItem(`currentShiftDraft_${userId}`)
+    localStorage.removeItem(`currentShift_${userId}`)
+    localStorage.removeItem(`currentShiftId_${userId}`)
+    localStorage.setItem(`shiftSubmitted_${userId}`, "false")
+    setCurrentShiftDraft(null)
+    setCurrentShift(null)
+    setIsSubmitted(false)
+  }
+
+  const handleContinueShift = () => {
+    router.push("/driver/shift-form")
+  }
+
   const handleLogout = () => {
     localStorage.removeItem("userId")
     localStorage.removeItem("userRole")
     router.push("/login")
-  }
-
-  /**
-   * Limpia los turnos y estado local del repartidor actual.
-   */
-  const handleClearTurno = () => {
-    try {
-      // Limpiar turnos del repartidor actual
-      const driverShifts = JSON.parse(localStorage.getItem("driverShifts") || "{}")
-      delete driverShifts[userId]
-      localStorage.setItem("driverShifts", JSON.stringify(driverShifts))
-      
-      // Limpiar localStorage específico del usuario actual
-      localStorage.removeItem(`currentShift_${userId}`)
-      localStorage.removeItem(`currentShiftDraft_${userId}`)
-      localStorage.removeItem(`shiftSubmitted_${userId}`)
-      
-      // Limpiar estado local
-      setPreviousShift(null)
-      setCurrentShift(null)
-      setCurrentShiftDraft(null)
-      setIsSubmitted(false)
-    } catch {}
-  }
-
-  /**
-   * Limpia los datos de localStorage para el usuario especificado.
-   */
-  const clearUserData = (userId: string) => {
-    try {
-      // Limpiar localStorage específico del usuario
-      localStorage.removeItem(`currentShift_${userId}`)
-      localStorage.removeItem(`currentShiftDraft_${userId}`)
-      localStorage.removeItem(`shiftSubmitted_${userId}`)
-      localStorage.removeItem(`previousShift_${userId}`)
-    } catch {}
-  }
-
-  const handleNewShift = () => {
-  // 1) Limpiar borradores y estado en localStorage
-  localStorage.removeItem(`currentShiftDraft_${userId}`)
-  localStorage.removeItem(`currentShift_${userId}`)
-  localStorage.removeItem(`currentShiftId_${userId}`)
-  localStorage.setItem(`shiftSubmitted_${userId}`, "false")
-
-  // 2) Limpiar estado React
-  setCurrentShiftDraft(null)
-  setCurrentShift(null)
-  setIsSubmitted(false)
-
-  // 3) Navegar al formulario vacío
-  router.push("/driver/shift-form")
-}
-
-  const handleContinueShift = () => {
-    router.push("/driver/shift-form")
   }
 
   return (
@@ -275,12 +207,14 @@ export default function DriverDashboard() {
                 width={48}
                 height={48}
                 className="w-full h-full object-cover rounded-full border border-red-200"
-                style={{background: 'transparent', objectFit: 'cover', borderRadius: '50%'}}
+                style={{ background: 'transparent', objectFit: 'cover', borderRadius: '50%' }}
               />
             </div>
             <div className="space-y-1">
               <h1 className="text-3xl font-bold text-gray-900">Panel de Repartidor</h1>
-              <p className="text-lg text-red-600 font-medium">Repartidor {userId}</p>
+              <p className="text-lg text-red-600 font-medium">
+                Repartidor {userId}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -368,11 +302,10 @@ export default function DriverDashboard() {
                       <p className="text-xl font-bold text-blue-600">{currentShiftDraft.totalTickets || 0}</p>
                     </div>
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-gray-500 mb-1">Total</p>
-                      <p className="text-xl font-bold text-blue-600">
-                        {(currentShiftDraft.totalEarned ?? 0).toFixed(2)} €
-                      </p>
-
+                        <p className="text-sm text-gray-500 mb-1">Total</p>
+                        <p className="text-xl font-bold text-blue-600">
+                          {(currentShiftDraft.totalEarned ?? 0).toFixed(2)} €
+                        </p>
                     </div>
                   </div>
 
@@ -420,15 +353,16 @@ export default function DriverDashboard() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h4 className="text-lg font-semibold text-gray-900">{previousShift.date}</h4>
-                    {previousShift.status === "unreviewed" ? (
-                      <span className="px-4 py-1 rounded-full bg-yellow-100 border border-yellow-400 text-yellow-800 font-semibold shadow-sm animate-pulse">
-                        Sin Revisar
-                      </span>
-                    ) : (
-                      <span className="px-4 py-1 rounded-full bg-green-100 border border-green-400 text-green-800 font-semibold shadow-sm">
-                        Completado
-                      </span>
-                    )}
+                    <Badge
+                      variant="secondary"
+                      className={
+                        previousShift.status === "reviewed"
+                          ? "bg-green-100 border-green-400 text-green-800"
+                          : "bg-yellow-100 border-yellow-400 text-yellow-800 animate-pulse"
+                      }
+                    >
+                      {previousShift.status === "reviewed" ? "Completado" : "Sin Revisar"}
+                    </Badge>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
