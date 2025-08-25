@@ -548,32 +548,33 @@ function PendingShiftCard({ shift, onReview }: { shift: ShiftData; onReview: (id
                             onChange={(e) => setReviewNotes(e.target.value)}
                             placeholder="Agrega observaciones sobre la revisión..."
                             rows={3}
-                            className="border-red-200 focus:border-red-500"
+                            className="bg-white border-red-200 focus:border-red-500"
                         />
                     </div>
 
-					<div className="space-y-2">
-						<Label>N.º de cajero</Label>
-						<Select value={cashierNumber} onValueChange={setCashierNumber}>
-							<SelectTrigger className={`text-base ${!cashierNumber && error ? 'border-red-500' : ''}`}>
-								<SelectValue placeholder="Selecciona n.º de cajero" />
-							</SelectTrigger>
-
-   							<SelectContent>
-     							{Array.from({ length: 12 }, (_, i) => `${i + 1}`).map((n) => (
-       								<SelectItem key={n} value={n}>Cajero {n}</SelectItem>
-     							))}
-   							</SelectContent>
-   							<SelectContent>
-     							{Array.from({ length: 12 }, (_, i) => `${i + 1}`).map((n) => (
-       								<SelectItem key={n} value={n}>Cajero {n}</SelectItem>
-     							))}
-     							<SelectItem value="Admin">Admin</SelectItem>
-   							</SelectContent>
-
-  						</Select>
-  						{error && !cashierNumber && <p className="text-red-600 text-sm">Selecciona el n.º de cajero</p>}
-					</div>
+                    <div className="space-y-2">
+                        <Label>N.º de cajero</Label>
+                        <Select value={cashierNumber} onValueChange={setCashierNumber}>
+                            <SelectTrigger
+                                className={`bg-white text-base ${
+                                    !cashierNumber && error ? 'border-red-500 focus:border-red-500' : ''
+                                }`}
+                                >
+                                <SelectValue placeholder="Selecciona n.º de cajero" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Array.from({ length: 12 }, (_, i) => `${i + 1}`).map((n) => (
+                                    <SelectItem key={n} value={n}>
+                                    Cajero {n}
+                                    </SelectItem>
+                                ))}
+                                <SelectItem value="Admin">Admin</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {error && !cashierNumber && (
+                            <p className="text-red-600 text-sm">Selecciona el n.º de cajero</p>
+                        )}
+                    </div>
 
                     <Button
                         onClick={handleReview}
@@ -641,16 +642,17 @@ function ReviewedShiftCard({ shift }: { shift: ShiftData }) {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4 p-4">
-                {shift.reviewNotes && !isUnreviewed && (
-                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-                        <p className="text-sm font-medium mb-1 text-blue-800">
-                            Observaciones del Cajero:
-                        </p>
-                        <p className="text-sm text-blue-700">{shift.reviewNotes}</p>
-                    </div>
-                )}
-            </CardContent>
+            {shift.reviewNotes && !isUnreviewed && (
+  <CardContent className="p-0">
+    <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+      <p className="text-sm font-medium mb-1 text-blue-800">
+        Observaciones del Cajero:
+      </p>
+      <p className="text-sm text-blue-700">{shift.reviewNotes}</p>
+    </div>
+  </CardContent>
+)}
+
         </Card>
     )
 }

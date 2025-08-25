@@ -234,9 +234,9 @@ export default function LoginPage() {
       </div>
       {/* Mini formulario admin desplegable */}
       {/* Panel principal login sin panel izquierdo */}
-      <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg flex flex-col overflow-hidden border border-red-200 mt-8" style={{minHeight: '600px', alignItems: 'center', justifyContent: 'center'}}>
-  {/* Solo formulario de login mejorado visualmente */}
-  <div className="flex flex-col justify-center items-center w-full mx-auto rounded-lg shadow-md border border-red-100 p-6" style={{marginTop: '0', maxWidth: '360px', background: 'transparent'}}>
+<div className="w-full max-w-md sm:max-w-lg lg:max-w-xl bg-white rounded-lg shadow-md border border-red-200 mt-8">
+
+  <div className="flex flex-col justify-center items-center w-full p-8">
           <form onSubmit={handleSubmit} className="space-y-2">
             <div className="space-y-2">
               <Label className="text-base font-semibold mb-1 text-red-700">Selecciona tu rol</Label>

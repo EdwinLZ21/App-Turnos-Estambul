@@ -433,8 +433,10 @@ export default function ShiftForm() {
                     id="date"
                     type="date"
                     value={currentShift.date}
-                    onChange={(e) => setCurrentShift((prev) => ({ ...prev, date: e.target.value }))}
-                    className="text-base"
+                    onChange={(e) =>
+                      setCurrentShift((prev) => ({ ...prev, date: e.target.value }))
+                    }
+                    className="text-base bg-white"
                   />
                 </div>
 
@@ -444,11 +446,8 @@ export default function ShiftForm() {
                     <Label htmlFor="entryTime" className="text-base font-medium">
                       Hora de entrada
                     </Label>
-                    <Select
-                      value={currentShift.entryTime}
-                      onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, entryTime: value }))}
-                    >
-                      <SelectTrigger className={`text-base ${isEntryTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
+                    <Select value={currentShift.entryTime}onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, entryTime: value }))}>
+                      <SelectTrigger className={`bg-white text-base ${isEntryTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
                         <SelectValue placeholder="00:00" />
                       </SelectTrigger>
                       <SelectContent>
@@ -464,11 +463,8 @@ export default function ShiftForm() {
                     <Label htmlFor="exitTime" className="text-base font-medium">
                       Hora de salida
                     </Label>
-                    <Select
-                      value={currentShift.exitTime}
-                      onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, exitTime: value }))}
-                    >
-                      <SelectTrigger className={`text-base ${isExitTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
+                    <Select value={currentShift.exitTime} onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, exitTime: value }))}>
+                      <SelectTrigger className={`bg-white text-base ${isExitTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
                         <SelectValue placeholder="00:00" />
                       </SelectTrigger>
                       <SelectContent>
@@ -482,81 +478,128 @@ export default function ShiftForm() {
                   </div>
                 </div>
 
-                {/* Cash Change - Fixed */}
+                {/* Cash Change */}
                 <div className="space-y-2">
                   <Label className="text-base font-medium">Cambio de caja</Label>
                   <div className="p-4 bg-gray-100 rounded-lg">
-                    <span className="text-lg font-semibold">{currentShift.cashChange.toFixed(2)} €</span>
+                    <span className="text-lg font-semibold">
+                      {currentShift.cashChange.toFixed(2)} €
+                    </span>
                   </div>
                 </div>
 
-                {/* Orders */}
+                {/* Orders: Home Delivery */}
                 <div className="space-y-2">
                   <Label htmlFor="homeDelivery" className="text-base font-medium">
                     Nº pedidos a domicilio (1-128)
                     {isHomeInvalid && (
-                      <span className="text-red-600 text-sm ml-2">valor invalido</span>
+                      <span className="text-red-600 text-sm ml-2">valor inválido</span>
                     )}
                   </Label>
-                  <Input
+                  <Textarea
                     id="homeDelivery"
                     placeholder="Ej: 45, 67, 89"
                     value={currentShift.homeDeliveryOrders}
-                    onChange={(e) => setCurrentShift((prev) => ({ ...prev, homeDeliveryOrders: e.target.value }))}
-                    className={`text-base ${isHomeInvalid ? "border-red-500 focus:border-red-600" : ""}`}
+                    onChange={(e) =>
+                      setCurrentShift((prev) => ({
+                        ...prev,
+                        homeDeliveryOrders: e.target.value,
+                      }))
+                    }
+                    className={`
+                      text-base bg-white
+                      h-24 resize-y overflow-auto
+                      whitespace-pre-wrap break-words
+                      ${isHomeInvalid ? "border-red-500 focus:border-red-600" : ""}
+                    `}
                   />
                 </div>
 
+                {/* Orders: Online */}
                 <div className="space-y-2">
                   <Label htmlFor="onlineOrders" className="text-base font-medium">
                     Nº pedidos online (5 dígitos)
                     {isOnlineInvalid && (
-                      <span className="text-red-600 text-sm ml-2">valor invalido</span>
+                      <span className="text-red-600 text-sm ml-2">valor inválido</span>
                     )}
                   </Label>
-                  <Input
+                  <Textarea
                     id="onlineOrders"
                     placeholder="Ej: 12345, 67890"
                     value={currentShift.onlineOrders}
-                    onChange={(e) => setCurrentShift((prev) => ({ ...prev, onlineOrders: e.target.value }))}
-                    className={`text-base ${isOnlineInvalid ? "border-red-500 focus:border-red-600" : ""}`}
+                    onChange={(e) =>
+                      setCurrentShift((prev) => ({
+                        ...prev,
+                        onlineOrders: e.target.value,
+                      }))
+                    }
+                    className={`
+                      text-base bg-white
+                      h-24 resize-y overflow-auto
+                      whitespace-pre-wrap break-words
+                      ${isOnlineInvalid ? "border-red-500 focus:border-red-600" : ""}
+                    `}
                   />
                 </div>
 
+                {/* Molares Orders */}
                 <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <Checkbox
                       id="molares"
                       checked={currentShift.molaresOrders}
                       onCheckedChange={(checked) =>
-                        setCurrentShift((prev) => ({ ...prev, molaresOrders: checked as boolean }))
+                        setCurrentShift((prev) => ({
+                          ...prev,
+                          molaresOrders: checked as boolean,
+                        }))
                       }
                       className="w-5 h-5 border-2 border-blue-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                     />
-                    <Label htmlFor="molares" className="text-base font-medium text-blue-800 cursor-pointer">
+                    <Label
+                      htmlFor="molares"
+                      className="text-base font-medium text-blue-800 cursor-pointer"
+                    >
                       Viaje a Molares (+1€)
                     </Label>
                   </div>
                   {currentShift.molaresOrders && (
                     <div className="space-y-1">
-                      <Input
+                      <Textarea
                         placeholder="Números de pedidos a Molares"
                         value={currentShift.molaresOrderNumbers}
-                        onChange={(e) => setCurrentShift((prev) => ({ ...prev, molaresOrderNumbers: e.target.value }))}
-                        className={`text-base bg-white ${(!currentShift.molaresOrderNumbers.trim() || (currentShift.molaresOrderNumbers.trim() && molaresTokens.some((t) => !allowedOrderTokens.has(t))) ? "border-red-500 focus:border-red-600" : "")}`}
+                        onChange={(e) =>
+                          setCurrentShift((prev) => ({
+                            ...prev,
+                            molaresOrderNumbers: e.target.value,
+                          }))
+                        }
+                        className={`
+                          text-base bg-white
+                          h-24 resize-y overflow-auto
+                          whitespace-pre-wrap break-words
+                          ${(!currentShift.molaresOrderNumbers.trim() ||
+                            (currentShift.molaresOrderNumbers.trim() &&
+                              molaresTokens.some((t) => !allowedOrderTokens.has(t))))
+                            ? "border-red-500 focus:border-red-600"
+                            : ""
+                          }
+                        `}
                       />
                       {!currentShift.molaresOrderNumbers.trim() && (
-                        <span className="text-red-600 text-sm">Indique los pedidos llevados</span>
+                        <span className="text-red-600 text-sm">
+                          Indique los pedidos llevados
+                        </span>
                       )}
-                      {currentShift.molaresOrderNumbers.trim() && molaresTokens.some((t) => !allowedOrderTokens.has(t)) && (
-                        <span className="text-red-600 text-sm">pedido inexistente</span>
-                      )}
+                      {currentShift.molaresOrderNumbers.trim() &&
+                        molaresTokens.some((t) => !allowedOrderTokens.has(t)) && (
+                          <span className="text-red-600 text-sm">pedido inexistente</span>
+                        )}
                     </div>
                   )}
                 </div>
 
-                {/* Incidents */}
-
+                  {/* Incidents */}
                 {/* Calculated Fields */}
                 <div className="space-y-4 border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
                   <div className="flex items-center gap-2 mb-2">
@@ -591,6 +634,7 @@ export default function ShiftForm() {
                   </div>
                 </div>
 
+                {/* Ingresos de Caja */}
                 <div className="space-y-6 border-2 border-green-200 rounded-lg p-6 bg-green-50">
                   <div className="flex items-center gap-2 mb-4">
                     <CheckCircle className="h-6 w-6 text-green-600" />
@@ -650,9 +694,7 @@ export default function ShiftForm() {
                         <span
                           className={`text-xl font-bold ${currentShift.totalCajaNeto < 0 ? "text-red-700" : "text-green-800"}`}
                         >
-                          {(
-                            currentShift.totalCajaNeto < 0 ? 0 : currentShift.totalCajaNeto
-                          ).toFixed(2)} €
+                          {(currentShift.totalCajaNeto < 0 ? 0 : currentShift.totalCajaNeto).toFixed(2)} €
                         </span>
                       </div>
                     </div>
@@ -677,6 +719,7 @@ export default function ShiftForm() {
                 </Button>
               </form>
             </CardContent>
+
           </Card>
         </div>
       </div>
