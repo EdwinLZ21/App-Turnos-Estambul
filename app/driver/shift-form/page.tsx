@@ -599,7 +599,25 @@ export default function ShiftForm() {
                   )}
                 </div>
 
-                  {/* Incidents */}
+                  {/* Incidencias */}
+                  <div className="space-y-2">
+                    <Label htmlFor="incidents" className="text-base font-medium">
+                      Incidencias
+                    </Label>
+                    <Textarea
+                      id="incidents"
+                      placeholder="Describe cualquier incidencia ocurrida durante el turno..."
+                      value={currentShift.incidents}
+                      onChange={(e) =>
+                        setCurrentShift((prev) => ({
+                          ...prev,
+                          incidents: e.target.value,
+                        }))
+                      }
+                      className="text-base bg-white h-24 resize-y overflow-auto whitespace-pre-wrap break-words"
+                    />
+                  </div>
+
                 {/* Calculated Fields */}
                 <div className="space-y-4 border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
                   <div className="flex items-center gap-2 mb-2">

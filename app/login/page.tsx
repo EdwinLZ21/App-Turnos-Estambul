@@ -238,8 +238,8 @@ export default function LoginPage() {
 
   <div className="flex flex-col justify-center items-center w-full p-8">
           <form onSubmit={handleSubmit} className="space-y-2">
-            <div className="space-y-2">
-              <Label className="text-base font-semibold mb-1 text-red-700">Selecciona tu rol</Label>
+            <div className="space-y-2 text-center">
+              <Label className="block text-2xl font-semibold mb-2 text-red-700 px-4 py-2">Selecciona tu rol</Label>
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   type="button"
@@ -322,7 +322,7 @@ export default function LoginPage() {
               <div className="bg-white rounded-lg shadow-lg w-full max-w-[1200px] max-h-[90vh] overflow-y-auto">
                 
                 {/* Cabecera: título centrado + botón de cerrar */}
-                <div className="relative flex items-center justify-center p-4 border-b bg-white sticky top-0 z-10">
+                <div className="sticky top-0 z-10 flex items-center justify-center p-4 border-b bg-white">
                   <h2 className="text-lg font-semibold">Repartidores activos</h2>
                   <Button
                     variant="ghost"

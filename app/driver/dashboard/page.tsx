@@ -1,4 +1,4 @@
-  "use client"
+"use client"
 import { AuthGuard } from "@/components/auth-guard"
 import { InactivityMonitor } from "@/components/inactivity-monitor"
 import Image from "next/image"
@@ -10,6 +10,7 @@ import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase-client"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
+
 
 interface ShiftData {
   id?: string
@@ -31,6 +32,7 @@ interface ShiftData {
   totalCajaNeto: number
   status: string
 }
+
 
 function mapShift(row: any): ShiftData {
   return {
@@ -61,6 +63,7 @@ function mapShift(row: any): ShiftData {
   }
 }
 
+
 export default function DriverDashboard() {
   const router = useRouter()
   const [previousShift, setPreviousShift] = useState<ShiftData | null>(null)
@@ -69,18 +72,22 @@ export default function DriverDashboard() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [userId, setUserId] = useState("")
 
+
   // Cargar userId del cliente
   useEffect(() => {
     const id = window.localStorage.getItem("userId") || ""
     setUserId(id)
   }, [])
 
+
   // Suscripción realtime para turno activo
   useEffect(() => {
     if (!userId) return
 
+
     const shiftId = localStorage.getItem(`currentShiftId_${userId}`)
     if (!shiftId) return
+
 
     const channel: RealtimeChannel = supabase
       .channel(`shift-${shiftId}`)
@@ -93,6 +100,7 @@ export default function DriverDashboard() {
             setCurrentShift(null)
             setIsSubmitted(false)
 
+
             localStorage.removeItem(`currentShiftDraft_${userId}`)
             localStorage.removeItem(`currentShift_${userId}`)
             localStorage.removeItem(`currentShiftId_${userId}`)
@@ -103,14 +111,17 @@ export default function DriverDashboard() {
       )
       .subscribe()
 
+
     return () => {
       supabase.removeChannel(channel)
     }
   }, [userId])
 
+
   // Cargar turno anterior, borrador y pendiente al montar o cambiar userId
   useEffect(() => {
     if (!userId) return
+
 
     // 1) Turno anterior desde DB
     supabase
@@ -127,9 +138,11 @@ export default function DriverDashboard() {
         }
       })
 
+
     // 2) Borrador local
     const draftRaw = localStorage.getItem(`currentShiftDraft_${userId}`)
     setCurrentShiftDraft(draftRaw ? JSON.parse(draftRaw) : null)
+
 
     // 3) Turno pendiente
     const isPending = localStorage.getItem(`shiftSubmitted_${userId}`) === "true"
@@ -155,23 +168,26 @@ export default function DriverDashboard() {
     }
   }, [userId])
 
-    const handleClearTurno = () => {
-      try {
-        const driverShifts = JSON.parse(localStorage.getItem("driverShifts") || "{}")
-        delete driverShifts[userId]
-        localStorage.setItem("driverShifts", JSON.stringify(driverShifts))
-        localStorage.removeItem(`currentShift_${userId}`)
-        localStorage.removeItem(`currentShiftDraft_${userId}`)
-        localStorage.removeItem(`shiftSubmitted_${userId}`)
-        setCurrentShift(null)
-        setCurrentShiftDraft(null)
-        setIsSubmitted(false)
-      } catch {}
-    }
 
-    const handleNewShift = () => {
+  const handleClearTurno = () => {
+    try {
+      const driverShifts = JSON.parse(localStorage.getItem("driverShifts") || "{}")
+      delete driverShifts[userId]
+      localStorage.setItem("driverShifts", JSON.stringify(driverShifts))
+      localStorage.removeItem(`currentShift_${userId}`)
+      localStorage.removeItem(`currentShiftDraft_${userId}`)
+      localStorage.removeItem(`shiftSubmitted_${userId}`)
+      setCurrentShift(null)
+      setCurrentShiftDraft(null)
+      setIsSubmitted(false)
+    } catch {}
+  }
+
+
+  const handleNewShift = () => {
     // Navega antes de limpiar
     router.push("/driver/shift-form")
+
 
     // Limpia borrador y estado
     localStorage.removeItem(`currentShiftDraft_${userId}`)
@@ -183,9 +199,11 @@ export default function DriverDashboard() {
     setIsSubmitted(false)
   }
 
+
   const handleContinueShift = () => {
     router.push("/driver/shift-form")
   }
+
 
   const handleLogout = () => {
     localStorage.removeItem("userId")
@@ -193,9 +211,11 @@ export default function DriverDashboard() {
     router.push("/login")
   }
 
+
   return (
     <AuthGuard requiredRole="driver">
       <InactivityMonitor onLogout={handleLogout} />
+
 
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-6">
         <div className="flex justify-between items-center mb-8">
@@ -224,17 +244,18 @@ export default function DriverDashboard() {
               className="flex items-center gap-2 border-red-200 hover:bg-red-50 bg-transparent"
             >
               <LogOut className="h-4 w-4" />
-              Cerrar Sesión
+              Cerrar sesión
             </Button>
           </div>
         </div>
+
 
         <div className="max-w-4xl mx-auto space-y-6">
           <Card className="border-red-200 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <User className="h-6 w-6" />
-                Turno Actual
+                Turno actual
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8">
@@ -242,14 +263,14 @@ export default function DriverDashboard() {
                 <div className="text-center space-y-6">
                   <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-green-700">Turno Enviado</h3>
+                    <h3 className="text-2xl font-bold text-green-700">Turno enviado</h3>
                     <p className="text-gray-600">Fecha: {currentShift.date}</p>
                     <p className="text-gray-600">
-                      Horario: {currentShift.entryTime} - {currentShift.exitTime}
+                      Horario: {currentShift.entryTime} – {currentShift.exitTime}
                     </p>
                   </div>
                   <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 px-4 py-2 text-sm">
-                    Pendiente de Revisión
+                    Pendiente de revisión
                   </Badge>
                   <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
                     <div className="text-center">
@@ -267,7 +288,7 @@ export default function DriverDashboard() {
                   </div>
                   <div className="mt-8 text-center p-6 bg-green-50 border-2 border-green-200 rounded-lg">
                     <p className="text-4xl font-bold text-green-600 mb-2">{(currentShift.totalCajaNeto ?? 0).toFixed(2)} €</p>
-                    <p className="text-lg font-medium text-green-700">Total Caja Neto</p>
+                    <p className="text-lg font-medium text-green-700">Total caja neto</p>
                   </div>
                 </div>
               ) : currentShiftDraft &&
@@ -278,7 +299,7 @@ export default function DriverDashboard() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div className="space-y-2">
-                      <h3 className="text-2xl font-bold text-blue-700">Turno en Progreso</h3>
+                      <h3 className="text-2xl font-bold text-blue-700">Turno en progreso</h3>
                       <p className="text-gray-600">Fecha: {currentShiftDraft.date}</p>
                     </div>
                     <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-4 py-2 text-sm">
@@ -286,22 +307,23 @@ export default function DriverDashboard() {
                     </Badge>
                   </div>
 
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <p className="text-sm text-gray-500 mb-1">Horario</p>
                       <p className="font-semibold text-gray-900">
-                        {currentShiftDraft.entryTime || "--:--"} - {currentShiftDraft.exitTime || "--:--"}
+                        {currentShiftDraft.entryTime || "--:--"} – {currentShiftDraft.exitTime || "--:--"}
                       </p>
                     </div>
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <p className="text-sm text-gray-500 mb-1">Horas</p>
                       <p className="text-xl font-bold text-blue-600">{currentShiftDraft.hoursWorked || 0}h</p>
                     </div>
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-center p-4:bg-blue-50 rounded-lg">
                       <p className="text-sm text-gray-500 mb-1">Tickets</p>
                       <p className="text-xl font-bold text-blue-600">{currentShiftDraft.totalTickets || 0}</p>
                     </div>
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-center p-4:bg-blue-50 rounded-lg">
                         <p className="text-sm text-gray-500 mb-1">Total</p>
                         <p className="text-xl font-bold text-blue-600">
                           {(currentShiftDraft.totalEarned ?? 0).toFixed(2)} €
@@ -309,14 +331,16 @@ export default function DriverDashboard() {
                     </div>
                   </div>
 
+
                   {currentShiftDraft.totalCajaNeto > 0 && (
-                    <div className="text-center p-6 bg-green-50 border-2 border-green-200 rounded-lg">
+                    <div className="text-center p-6:bg-green-50 border-2 border-green-200 rounded-lg">
                       <p className="text-3xl font-bold text-green-600 mb-2">
                         {currentShiftDraft.totalCajaNeto.toFixed(2)} €
                       </p>
-                      <p className="text-lg font-medium text-green-700">Total Caja Neto</p>
+                      <p className="text-lg font-medium text-green-700">Total caja neto</p>
                     </div>
                   )}
+
 
                   <div className="text-center">
                     <Button onClick={handleContinueShift} size="lg" className="bg-blue-600 hover:bg-blue-700 px-8 py-3">
@@ -329,23 +353,24 @@ export default function DriverDashboard() {
                 <div className="text-center space-y-6">
                   <Clock className="h-16 w-16 text-red-500 mx-auto" />
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-gray-900">Sin Turno Activo</h3>
+                    <h3 className="text-2xl font-bold text-gray-900">Sin turno activo</h3>
                     <p className="text-gray-600">Inicia un nuevo turno para comenzar</p>
                   </div>
                   <Button onClick={handleNewShift} size="lg" className="bg-red-600 hover:bg-red-700 px-8 py-3">
                     <Plus className="h-5 w-5 mr-2" />
-                    Iniciar Nuevo Turno
+                    Iniciar nuevo turno
                   </Button>
                 </div>
               )}
             </CardContent>
           </Card>
 
+
           <Card className="border-gray-200 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <Calendar className="h-6 w-6" />
-                Turno Anterior
+                Turno anterior
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8">
@@ -361,15 +386,16 @@ export default function DriverDashboard() {
                           : "bg-yellow-100 border-yellow-400 text-yellow-800 animate-pulse"
                       }
                     >
-                      {previousShift.status === "reviewed" ? "Completado" : "Sin Revisar"}
+                      {previousShift.status === "reviewed" ? "Completado" : "Sin revisar"}
                     </Badge>
                   </div>
+
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
                       <p className="text-sm text-gray-500 mb-1">Horario</p>
                       <p className="font-semibold text-gray-900">
-                        {previousShift.entryTime} - {previousShift.exitTime}
+                        {previousShift.entryTime} – {previousShift.exitTime}
                       </p>
                     </div>
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
@@ -382,17 +408,11 @@ export default function DriverDashboard() {
                     </div>
                   </div>
 
+
                   <div className="text-center p-6 bg-green-50 border-2 border-green-200 rounded-lg">
                     <p className="text-3xl font-bold text-green-600 mb-2">{(previousShift.totalEarned ?? 0).toFixed(2)} €</p>
                     <p className="text-lg font-medium text-green-700">Pago del turno</p>
                   </div>
-
-                  {previousShift.incidents && (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-sm font-medium text-yellow-800 mb-1">Incidencias:</p>
-                      <p className="text-sm text-yellow-700">{previousShift.incidents}</p>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-12 space-y-4">
@@ -410,3 +430,4 @@ export default function DriverDashboard() {
     </AuthGuard>
   )
 }
+

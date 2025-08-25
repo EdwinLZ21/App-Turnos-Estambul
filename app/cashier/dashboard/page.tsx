@@ -536,7 +536,7 @@ function PendingShiftCard({ shift, onReview }: { shift: ShiftData; onReview: (id
                     {shift.incidents && (
                         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <p className="text-sm font-medium text-yellow-800 mb-1">Incidencias Reportadas:</p>
-                            <p className="text-sm text-yellow-700">{shift.incidents}</p>
+                            <p className="text-sm text-yellow-700 whitespace-pre-wrap break-words">{shift.incidents}</p>
                         </div>
                     )}
 
