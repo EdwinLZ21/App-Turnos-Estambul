@@ -372,22 +372,56 @@ export default function ShiftForm() {
 
         <div className="max-w-2xl mx-auto">
           <Card className="border-red-200 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg">
-              <CardTitle className="text-xl">
-                {currentShift && currentShift.entryTime !== "00:00" && currentShift.exitTime !== "00:00" ? "Continuar Turno" : "Nuevo Turno"}
-              </CardTitle>
-              <CardDescription className="text-red-100">
-                Fecha: {currentShift.date ? new Date(currentShift.date).toLocaleDateString("es-ES") : new Date().toLocaleDateString("es-ES")}
-              </CardDescription>
+            <CardHeader className="bg-gradient-to-r from-red-600 to-red-500 text-white rounded-t-lg shadow-lg p-6">
+              <div className="text-center">
+                <CardTitle className="text-3xl font-extrabold mb-1">
+                  {currentShift && currentShift.entryTime !== "00:00" && currentShift.exitTime !== "00:00"
+                  ? "Continuar Turno"
+                  : "Nuevo Turno"}
+                </CardTitle>
+                <CardDescription className="text-red-100 font-medium text-lg">
+                  Fecha: {currentShift.date
+                  ? new Date(currentShift.date).toLocaleDateString("es-ES")
+                  : new Date().toLocaleDateString("es-ES")}
+                </CardDescription>
+              </div>
+
               {currentShift && currentShift.entryTime !== "00:00" && currentShift.exitTime !== "00:00" && (
-                <div className="mt-2 text-sm text-white bg-red-700/30 rounded-lg p-2">
-                  <div><b>Resumen:</b></div>
-                  <div>Horario: {currentShift.entryTime} - {currentShift.exitTime}</div>
-                  <div>Pedidos domicilio: {currentShift.homeDeliveryOrders || "-"}</div>
-                  <div>Pedidos online: {currentShift.onlineOrders || "-"}</div>
+              <div className="mt-6 bg-red-700 text-white rounded-lg p-5 border border-red-600 mx-4">
+                <div className="text-center text-xl font-bold mb-4">RESUMEN</div>
+
+                <div className="mb-4">
+                  <div className="text-base font-semibold mb-1">Horario:</div>
+                  <div className="text-sm ml-4">{currentShift.entryTime} - {currentShift.exitTime}</div>
                 </div>
+
+                <div className="mb-4">
+                  <div className="text-base font-semibold mb-1">Pedidos a domicilio:</div>
+                  <div className="ml-4 flex flex-wrap gap-1">
+                    {currentShift.homeDeliveryOrders? currentShift.homeDeliveryOrders.split(',').map((pedido, i) => (
+                      <span key={i} className="text-xs font-mono bg-red-600/40 px-2 py-1 rounded">
+                        {pedido.trim()}
+                      </span>
+                    ))
+                   : <span className="text-sm">Ninguno</span>}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-base font-semibold mb-1">Pedidos online:</div>
+                  <div className="ml-4 flex flex-wrap gap-1">
+                    {currentShift.onlineOrders? currentShift.onlineOrders.split(',').map((pedido, i) => (
+                      <span key={i} className="text-xs font-mono bg-red-600/40 px-2 py-1 rounded">
+                        {pedido.trim()}
+                      </span>
+                    ))
+                    : <span className="text-sm">Ninguno</span>}
+                  </div>
+                </div>
+              </div>
               )}
             </CardHeader>
+
             <CardContent className="p-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Date */}
