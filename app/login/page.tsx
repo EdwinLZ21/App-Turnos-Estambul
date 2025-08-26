@@ -323,7 +323,7 @@ export default function LoginPage() {
                 
                 {/* Cabecera: título centrado + botón de cerrar */}
                 <div className="sticky top-0 z-10 flex items-center justify-center p-4 border-b bg-white">
-                  <h2 className="text-lg font-semibold">Repartidores activos</h2>
+                  <h2 className="text-lg font-semibold">Repartidores Activos</h2>
                   <Button
                     variant="ghost"
                     size="sm"

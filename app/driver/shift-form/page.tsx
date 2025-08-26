@@ -67,6 +67,7 @@ export default function ShiftForm() {
   })
   const [errors, setErrors] = useState<string[]>([])
   const [submitted, setSubmitted] = useState(false)
+  const [bonusMessage, setBonusMessage] = useState<string>("")
 
   useEffect(() => {
     const userId = localStorage.getItem("userId") || ""
@@ -117,31 +118,55 @@ export default function ShiftForm() {
     }
   }, [currentShift.entryTime, currentShift.exitTime])
 
-  useEffect(() => {
-    const homeDeliveryCount = currentShift.homeDeliveryOrders.split(",").filter((n) => n.trim()).length
-    const onlineCount = currentShift.onlineOrders.split(",").filter((n) => n.trim()).length
-    const totalTickets = homeDeliveryCount + onlineCount
-    const totalAmount = totalTickets * 0.5
-    const hoursEarned = currentShift.hoursWorked * 6
-    const molaresBonus = currentShift.molaresOrders ? 1 : 0
-    const totalEarned = hoursEarned + totalAmount + molaresBonus
-    const totalCajaNeto = currentShift.totalSalesPedidos - currentShift.totalDatafono
+useEffect(() => {
+  const homeDeliveryCount = currentShift.homeDeliveryOrders
+    .split(",")
+    .filter((n: string) => n.trim()).length
+  const onlineCount = currentShift.onlineOrders
+    .split(",")
+    .filter((n: string) => n.trim()).length
+  const totalTickets = homeDeliveryCount + onlineCount
+  const totalAmount = totalTickets * 0.5
+  const hoursEarned = currentShift.hoursWorked * 6
+  const molaresBonus = currentShift.molaresOrders ? 1 : 0
 
-    setCurrentShift((prev) => ({
-      ...prev,
-      totalTickets,
-      totalAmount,
-      totalEarned,
-      totalCajaNeto,
-    }))
-  }, [
-    currentShift.homeDeliveryOrders,
-    currentShift.onlineOrders,
-    currentShift.hoursWorked,
-    currentShift.molaresOrders,
-    currentShift.totalSalesPedidos,
-    currentShift.totalDatafono,
-  ])
+  // Mensajes y bonos por metas
+  let bonusEuros = 0
+  let bonusMsg = ""
+
+  if (totalTickets >= 31) {
+    bonusEuros = 2.5
+    bonusMsg = "💪 ¡Eres una máquina! Llegaste a 31 pedidos y ganaste 2,50 € extra. ¡Imparable!"
+  } else if (totalTickets >= 21) {
+    bonusEuros = 1.5
+    bonusMsg = "🚀 ¡Súper meta! Completaste 21 pedidos y ganaste 1,50 € extra. ¡A por más!"
+  } else if (totalTickets >= 11) {
+    bonusEuros = 0.5
+    bonusMsg = "🎉 ¡Buen comienzo! Alcanzaste 11 pedidos y ganaste 0,50 € extra. Sigue así."
+  } else {
+    bonusMsg = "🌟 Sigue esforzándote: alcanza 11 pedidos para ganar un bono."
+  }
+
+  const totalEarned = hoursEarned + totalAmount + molaresBonus + bonusEuros
+  const totalCajaNeto = currentShift.totalSalesPedidos - currentShift.totalDatafono
+
+  setCurrentShift(prev => ({
+    ...prev,
+    totalTickets,
+    totalAmount,
+    totalEarned,
+    totalCajaNeto,
+  }))
+
+  setBonusMessage(bonusMsg)
+}, [
+  currentShift.homeDeliveryOrders,
+  currentShift.onlineOrders,
+  currentShift.hoursWorked,
+  currentShift.molaresOrders,
+  currentShift.totalSalesPedidos,
+  currentShift.totalDatafono,
+])
 
   const handleLogout = () => {
     localStorage.removeItem("userId")
@@ -649,6 +674,17 @@ export default function ShiftForm() {
                         <span className="text-lg font-bold text-blue-700">{currentShift.totalEarned.toFixed(2)} €</span>
                       </div>
                     </div>
+                    {bonusMessage && (
+                      <div className="space-y-2 col-span-2">
+                        <Label className="text-base font-medium">Bono por Pedidos</Label>
+                        <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">
+                          <span className="text-lg font-semibold text-blue-700">
+                            {bonusMessage}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                   </div>
                 </div>
 

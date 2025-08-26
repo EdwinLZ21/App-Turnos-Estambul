@@ -22,6 +22,7 @@ interface MonthlyDriverData {
   turnos: number
   horas: number
   tickets: number
+  bonos: number
   cobro: number
   incidencias: Array<{ fecha: string; texto: string }>
   observaciones: Array<{ fecha: string; texto: string }>
@@ -78,12 +79,13 @@ export default function AdminDashboard() {
       shifts?.forEach((shift) => {
         const id = shift.driver_id || "N/A"
         if (!grouped[id]) {
-          grouped[id] = { driverId: id, turnos: 0, horas: 0, tickets: 0, cobro: 0, incidencias: [], observaciones: [] }
+          grouped[id] = { driverId: id, turnos: 0, horas: 0, tickets: 0, bonos: 0, cobro: 0, incidencias: [], observaciones: [] }
         }
         const g = grouped[id]
         g.turnos++
         g.horas += Number(shift.hours_worked || 0)
         g.tickets += Number(shift.total_tickets || 0)
+        g.bonos += Number(shift.bonus_earned || 0) 
         g.cobro += Number(shift.total_earned || 0)
         if (shift.incidents) g.incidencias.push({ fecha: shift.date, texto: shift.incidents })
         if (shift.review_notes) g.observaciones.push({ fecha: shift.date, texto: shift.review_notes })
@@ -224,6 +226,7 @@ export default function AdminDashboard() {
                   <th className="p-2 w-1/12">Turnos</th>
                   <th className="p-2 w-1/12">Horas</th>
                   <th className="p-2 w-1/12">Tickets</th>
+                  <th className="p-2 w-1/12">Bonos</th> 
                   <th className="p-2 w-1/12">Cobro</th>
                   <th className="p-2 w-1/12">Rendimiento<br/>(€ / h)</th>
                   <th className="p-2 w-3/12 hidden md:table-cell">Incidencias</th>
@@ -237,6 +240,7 @@ export default function AdminDashboard() {
                     <td className="p-2 text-center">{r.turnos}</td>
                     <td className="p-2 text-center">{r.horas.toFixed(1)}h</td>
                     <td className="p-2 text-center">{r.tickets}</td>
+                    <td className="p-2 text-center text-purple-700 font-semibold">€{r.bonos.toFixed(2)}</td>
                     <td className="p-2 text-center text-green-700">€{r.cobro.toFixed(2)}</td>
                     <td className="p-2 text-center text-blue-700 font-semibold">{r.rendimiento!==undefined?`€${r.rendimiento.toFixed(2)}`:"–"}</td>
                     <td className="p-2 hidden md:table-cell align-top">
