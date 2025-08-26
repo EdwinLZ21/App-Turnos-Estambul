@@ -84,18 +84,18 @@ export default function LoginPage() {
 
       if (selectedRole === "driver") {
         const driverPasswords: Record<string, string> = {
-          "1": "56789",
-          "2": "87654",
-          "3": "34567",
-          "4": "98765",
-          "5": "23456",
-          "6": "45678",
-          "7": "12345",
-          "8": "76543",
-          "9": "11112",
-          "10": "99998",
-          "11": "44445",
-          "12": "12321",
+          "1": "56776",
+          "2": "87554",
+          "3": "33567",
+          "4": "98295",
+          "5": "23196",
+          "6": "43078",
+          "7": "19445",
+          "8": "66513",
+          "9": "76194",
+          "10": "05068",
+          "11": "69105",
+          "12": "58321",
           "13": "43434",
           "14": "56565",
           "15": "78787",
@@ -123,7 +123,7 @@ export default function LoginPage() {
           setError("Ingrese la Contraseña.")
           return
         }
-        if (password === "002") {
+        if (password === "025") {
           userRole = "cashier"
           userId = "1"
         } else {
@@ -131,7 +131,7 @@ export default function LoginPage() {
           return
         }
       } else if (selectedRole === "admin") {
-        if (username === "admin" && password === "12345") {
+        if (username === "Adminseki" && password === "Estambul2025@") {
           userRole = "admin"
           userId = "admin"
         } else {
@@ -185,7 +185,7 @@ export default function LoginPage() {
                   onSubmit={async (e) => {
                     e.preventDefault()
                     // Autenticación admin separada
-                    if (adminUser === "admin" && adminPass === "12345") {
+                    if (adminUser === "Adminseki" && adminPass === "Estambul2025@") {
                       localStorage.setItem("userRole", "admin")
                       localStorage.setItem("userId", "admin")
                       setShowAdminForm(false)
