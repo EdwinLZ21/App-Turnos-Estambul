@@ -102,7 +102,7 @@ export default function AdminDashboard() {
 
   // Generar CSV con saltos de línea y truncado
   const generateCSV = () => {
-    let csv = "Nro Repartidor,Turnos,Horas,Tickets,Cobro,Rendimiento,Incidencias,Observaciones\n"
+    let csv = "Número Repartidor,Turnos,Horas,Tickets,Cobro,Rendimiento,Incidencias,Observaciones\n"
     monthlyData.forEach((r) => {
       const incText = r.incidencias
         .map((i) => `${i.fecha}: ${truncate(i.texto, 15)}`)
@@ -118,14 +118,14 @@ export default function AdminDashboard() {
     return csv
   }
 
-  // Generar PDF con multilinea en celdas
+  // Generar PDF con multilínea en celdas
   const generatePDF = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" })
     doc.setFontSize(16)
     doc.text(`Resumen Mensual: ${selectedMonth}`, 40, 40)
     doc.setFontSize(10)
 
-    const columns = ["Nro Repartidor","Turnos","Horas","Tickets","Cobro","Rendimiento","Incidencias","Observaciones"]
+    const columns = ["Número Repartidor","Turnos","Horas","Tickets","Cobro","Rendimiento","Incidencias","Observaciones"]
     const rows = monthlyData.map((r) => [
       r.driverId,
       r.turnos,
@@ -168,7 +168,7 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: REPORT_EMAIL, subject: `Reporte ${selectedMonth}`, attachment }),
       })
-      alert("Reporte enviado")
+      alert("Reporte enviado exitosamente")
     } catch {
       alert("Error al enviar el reporte")
     } finally {
@@ -190,10 +190,10 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between w-full max-w-6xl mb-8">
           <div className="flex items-center gap-4">
             <Image src="/Logo-Estambul.jpg" alt="Logo" width={64} height={64} className="rounded-full border border-red-200" />
-            <h1 className="text-3xl font-bold text-red-700">Panel ADMIN</h1>
+            <h1 className="text-3xl font-bold text-red-700">Panel Administrativo</h1>
           </div>
           <Button onClick={handleLogout} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg border shadow">
-            <LogOut className="h-4 w-4 mr-1" /> Cerrar sesión
+            <LogOut className="h-4 w-4 mr-1" /> Cerrar Sesión
           </Button>
         </div>
 
@@ -220,7 +220,7 @@ export default function AdminDashboard() {
             <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="bg-red-50 text-red-700">
-                  <th className="p-2 w-1/12">Nro Repartidor</th>
+                  <th className="p-2 w-1/12">Número Repartidor</th>
                   <th className="p-2 w-1/12">Turnos</th>
                   <th className="p-2 w-1/12">Horas</th>
                   <th className="p-2 w-1/12">Tickets</th>

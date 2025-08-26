@@ -80,7 +80,7 @@ export default function DriverDashboard() {
   }, [])
 
 
-  // Suscripción realtime para turno activo
+  // Suscripción en tiempo real para el turno activo
   useEffect(() => {
     if (!userId) return
 
@@ -244,7 +244,7 @@ export default function DriverDashboard() {
               className="flex items-center gap-2 border-red-200 hover:bg-red-50 bg-transparent"
             >
               <LogOut className="h-4 w-4" />
-              Cerrar sesión
+              Cerrar Sesión
             </Button>
           </div>
         </div>
@@ -255,7 +255,7 @@ export default function DriverDashboard() {
             <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <User className="h-6 w-6" />
-                Turno actual
+                Turno Actual
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8">
@@ -263,14 +263,14 @@ export default function DriverDashboard() {
                 <div className="text-center space-y-6">
                   <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-green-700">Turno enviado</h3>
+                    <h3 className="text-2xl font-bold text-green-700">Turno Enviado</h3>
                     <p className="text-gray-600">Fecha: {currentShift.date}</p>
                     <p className="text-gray-600">
                       Horario: {currentShift.entryTime} – {currentShift.exitTime}
                     </p>
                   </div>
                   <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 px-4 py-2 text-sm">
-                    Pendiente de revisión
+                    Pendiente de Revisión
                   </Badge>
                   <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
                     <div className="text-center">
@@ -279,16 +279,16 @@ export default function DriverDashboard() {
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-bold text-red-600">{currentShift.totalTickets}</p>
-                      <p className="text-sm text-gray-500">Total tickets</p>
+                      <p className="text-sm text-gray-500">Total de Tickets</p>
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-bold text-red-600">{(currentShift.totalEarned ?? 0).toFixed(2)} €</p>
-                      <p className="text-sm text-gray-500">Total cobrado</p>
+                      <p className="text-sm text-gray-500">Total Cobrado</p>
                     </div>
                   </div>
                   <div className="mt-8 text-center p-6 bg-green-50 border-2 border-green-200 rounded-lg">
                     <p className="text-4xl font-bold text-green-600 mb-2">{(currentShift.totalCajaNeto ?? 0).toFixed(2)} €</p>
-                    <p className="text-lg font-medium text-green-700">Total caja neto</p>
+                    <p className="text-lg font-medium text-green-700">Total Caja Neto</p>
                   </div>
                 </div>
               ) : currentShiftDraft &&
@@ -299,7 +299,7 @@ export default function DriverDashboard() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div className="space-y-2">
-                      <h3 className="text-2xl font-bold text-blue-700">Turno en progreso</h3>
+                      <h3 className="text-2xl font-bold text-blue-700">Turno en Progreso</h3>
                       <p className="text-gray-600">Fecha: {currentShiftDraft.date}</p>
                     </div>
                     <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-4 py-2 text-sm">
@@ -337,7 +337,7 @@ export default function DriverDashboard() {
                       <p className="text-3xl font-bold text-green-600 mb-2">
                         {currentShiftDraft.totalCajaNeto.toFixed(2)} €
                       </p>
-                      <p className="text-lg font-medium text-green-700">Total caja neto</p>
+                      <p className="text-lg font-medium text-green-700">Total Caja Neto</p>
                     </div>
                   )}
 
@@ -345,7 +345,7 @@ export default function DriverDashboard() {
                   <div className="text-center">
                     <Button onClick={handleContinueShift} size="lg" className="bg-blue-600 hover:bg-blue-700 px-8 py-3">
                       <Edit className="h-5 w-5 mr-2" />
-                      Continuar
+                      Continuar Turno
                     </Button>
                   </div>
                 </div>
@@ -353,12 +353,12 @@ export default function DriverDashboard() {
                 <div className="text-center space-y-6">
                   <Clock className="h-16 w-16 text-red-500 mx-auto" />
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-gray-900">Sin turno activo</h3>
-                    <p className="text-gray-600">Inicia un nuevo turno para comenzar</p>
+                    <h3 className="text-2xl font-bold text-gray-900">Sin Turno Activo</h3>
+                    <p className="text-gray-600">Inicie un Nuevo Turno para Comenzar</p>
                   </div>
                   <Button onClick={handleNewShift} size="lg" className="bg-red-600 hover:bg-red-700 px-8 py-3">
                     <Plus className="h-5 w-5 mr-2" />
-                    Iniciar nuevo turno
+                    Iniciar Nuevo Turno
                   </Button>
                 </div>
               )}
@@ -370,7 +370,7 @@ export default function DriverDashboard() {
             <CardHeader className="bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <Calendar className="h-6 w-6" />
-                Turno anterior
+                Turno Anterior
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8">
@@ -411,15 +411,15 @@ export default function DriverDashboard() {
 
                   <div className="text-center p-6 bg-green-50 border-2 border-green-200 rounded-lg">
                     <p className="text-3xl font-bold text-green-600 mb-2">{(previousShift.totalEarned ?? 0).toFixed(2)} €</p>
-                    <p className="text-lg font-medium text-green-700">Pago del turno</p>
+                    <p className="text-lg font-medium text-green-700">Pago del Turno</p>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-12 space-y-4">
                   <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
                   <div className="space-y-2">
-                    <h4 className="text-lg font-medium text-gray-500">Sin turnos anteriores</h4>
-                    <p className="text-sm text-gray-400">Los turnos completados aparecerán aquí</p>
+                    <h4 className="text-lg font-medium text-gray-500">Sin Turnos Anteriores</h4>
+                    <p className="text-sm text-gray-400">Los Turnos Completados se Mostrarán Aquí</p>
                   </div>
                 </div>
               )}

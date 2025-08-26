@@ -75,7 +75,7 @@ export default function LoginPage() {
     // Simulate authentication
     try {
       if (!selectedRole) {
-        setError("Por favor, selecciona un rol")
+        setError("Por favor, seleccione un Rol.")
         return
       }
 
@@ -107,7 +107,7 @@ export default function LoginPage() {
         }
 
         if (!username || !password) {
-          setError("Ingresa usuario y contraseña")
+          setError("Ingrese Usuario y Contraseña.")
           return
         }
 
@@ -115,19 +115,19 @@ export default function LoginPage() {
           userRole = "driver"
           userId = username
         } else {
-          setError("Usuario, contraseña o rol incorrectos")
+          setError("Usuario, Contraseña o Rol incorrectos.")
           return
         }
       } else if (selectedRole === "cashier") {
         if (!password) {
-          setError("Ingresa la contraseña")
+          setError("Ingrese la Contraseña.")
           return
         }
         if (password === "002") {
           userRole = "cashier"
           userId = "1"
         } else {
-          setError("Contraseña incorrecta")
+          setError("Contraseña incorrecta.")
           return
         }
       } else if (selectedRole === "admin") {
@@ -135,7 +135,7 @@ export default function LoginPage() {
           userRole = "admin"
           userId = "admin"
         } else {
-          setError("Usuario o contraseña de admin incorrectos")
+          setError("Usuario o Contraseña de Admin incorrectos.")
           return
         }
       }
@@ -153,7 +153,7 @@ export default function LoginPage() {
         router.push("/driver/dashboard")
       }
     } catch (err) {
-      setError("Error de autenticación. Intenta nuevamente.")
+      setError("Error de autenticación. Intente nuevamente.")
     } finally {
       setIsLoading(false)
     }
@@ -167,7 +167,7 @@ export default function LoginPage() {
           <div className="flex items-center relative">
             <div className="w-16 h-16 bg-white rounded-full p-2 shadow-md cursor-pointer border border-red-200 flex items-center justify-center"
               onClick={() => setShowAdminForm((prev) => !prev)}
-              title="Acceso Admin"
+              title="Acceso de Admin"
             >
               <Image
                 src="/Logo-Estambul.jpg"
@@ -180,7 +180,7 @@ export default function LoginPage() {
             </div>
             {showAdminForm && (
               <div className="absolute left-0 top-full mt-2 z-50 bg-white border border-red-200 rounded-xl shadow-lg p-4 w-64 animate-fade-in flex flex-col items-center">
-                <h2 className="text-lg font-bold text-red-700 mb-2">Acceso Admin</h2>
+                <h2 className="text-lg font-bold text-red-700 mb-2">Acceso de Admin</h2>
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault()
@@ -191,7 +191,7 @@ export default function LoginPage() {
                       setShowAdminForm(false)
                       router.push("/admin/dashboard")
                     } else {
-                      setAdminError("Usuario o contraseña de admin incorrectos")
+                      setAdminError("Usuario o Contraseña de Admin incorrectos.")
                     }
                   }}
                   className="w-full space-y-2"
@@ -201,7 +201,7 @@ export default function LoginPage() {
                     type="text"
                     value={adminUser}
                     onChange={(e) => setAdminUser(e.target.value)}
-                    placeholder="Usuario admin"
+                    placeholder="Usuario Admin"
                     className="border-red-200 focus:border-red-500"
                     required
                   />
@@ -239,7 +239,7 @@ export default function LoginPage() {
   <div className="flex flex-col justify-center items-center w-full p-8">
           <form onSubmit={handleSubmit} className="space-y-2">
             <div className="space-y-2 text-center">
-              <Label className="block text-2xl font-semibold mb-2 text-red-700 px-4 py-2">Selecciona tu rol</Label>
+              <Label className="block text-2xl font-semibold mb-2 text-red-700 px-4 py-2">Seleccione su Rol</Label>
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   type="button"
@@ -276,7 +276,7 @@ export default function LoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Número de usuario"
+                  placeholder="Número de Usuario"
                   className="border border-red-200 focus:border-red-500 rounded-lg px-3 py-2 text-sm"
                   required={selectedRole === "driver"}
                 />
@@ -312,7 +312,7 @@ export default function LoginPage() {
           {/* 🚀 BOTÓN PARA VER REPARTIDORES ACTIVOS */}
           <div className="mt-6 text-center w-full">
             <Button onClick={fetchActiveFromLocal} variant="outline">
-              Ver repartidores activos
+              Ver Repartidores Activos
             </Button>
           </div>
 
@@ -406,7 +406,7 @@ export default function LoginPage() {
                       })}
                     </div>
                   ) : (
-                    <p className="text-center text-gray-500">No hay repartidores activos</p>
+                    <p className="text-center text-gray-500">No hay Repartidores Activos.</p>
                   )}
                 </div>
               </div>

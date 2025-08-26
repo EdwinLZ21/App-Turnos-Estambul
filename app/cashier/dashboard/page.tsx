@@ -44,7 +44,7 @@ interface ShiftData {
 
 export default function CashierDashboard() {
     /**
-     * Panel de caja: gestión de turnos, revisión y exportación.
+     * Panel de Cajero: gestión de turnos, revisión y exportación.
      * Documentación de funciones principales para facilitar refactorización.
      */
     const router = useRouter()
@@ -73,7 +73,7 @@ export default function CashierDashboard() {
 
 
     /**
-     * ✅ NUEVA FUNCIÓN: Calcula el inicio de la semana laboral (desde martes)
+     * Calcula la fecha de inicio de la semana laboral (martes)
      */
     const getWorkWeekStart = () => {
         const now = new Date()
@@ -329,7 +329,7 @@ export default function CashierDashboard() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <h1 className="text-3xl font-bold text-gray-900">Panel de Caja</h1>
+                                <h1 className="text-3xl font-bold text-gray-900">Panel de Cajero</h1>
                                 <p className="text-lg text-red-600 font-medium">Cajero {userId}</p>
                             </div>
                         </div>
@@ -353,7 +353,7 @@ export default function CashierDashboard() {
                                 Turnos Pendientes ({getFilteredPendingShifts().length})
                             </TabsTrigger>
                             <TabsTrigger value="reviewed" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
-                                Historial Semanal ({getFilteredReviewedShifts().length})
+                                Historial de la Semana ({getFilteredReviewedShifts().length})
                             </TabsTrigger>
                         </TabsList>
 
@@ -364,8 +364,8 @@ export default function CashierDashboard() {
                                         <div className="text-center py-12 space-y-4">
                                             <CheckCircle className="h-16 w-16 text-gray-300 mx-auto" />
                                             <div className="space-y-2">
-                                                <h4 className="text-lg font-medium text-gray-500">No hay turnos pendientes</h4>
-                                                <p className="text-sm text-gray-400">Los turnos enviados por repartidores aparecerán aquí</p>
+                                                <h4 className="text-lg font-medium text-gray-500">No existen turnos pendientes</h4>
+                                                <p className="text-sm text-gray-400">Los nuevos turnos de repartidores aparecerán aquí</p>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -386,7 +386,7 @@ export default function CashierDashboard() {
                                         <div className="text-center py-12 space-y-4">
                                             <Calendar className="h-16 w-16 text-gray-300 mx-auto" />
                                             <div className="space-y-2">
-                                                <h4 className="text-lg font-medium text-gray-500">No hay turnos revisados</h4>
+                                                <h4 className="text-lg font-medium text-gray-500">No existen turnos revisados</h4>
                                                 <p className="text-sm text-gray-400">El historial de la semana laboral aparecerá aquí</p>
                                             </div>
                                         </div>
@@ -417,7 +417,7 @@ function PendingShiftCard({ shift, onReview }: { shift: ShiftData; onReview: (id
 
     const handleReview = () => {
         if (!cashierNumber) {
-            setError("Selecciona el n.º de cajero")
+            setError("Seleccione Número de Cajero")
             return
         }
         setError("")
@@ -500,13 +500,13 @@ function PendingShiftCard({ shift, onReview }: { shift: ShiftData; onReview: (id
                         <div className="space-y-2">
                             <p className="text-sm font-medium text-gray-700">Pedidos a Domicilio</p>
                             <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                                {shift.homeDeliveryOrders ? shift.homeDeliveryOrders.replace(/,/g, ', ') : "Ninguno"}
+                                {shift.homeDeliveryOrders ? shift.homeDeliveryOrders.replace(/,/g, ', ') : "Sin pedidos"}
                             </p>
                         </div>
                         <div className="space-y-2">
                             <p className="text-sm font-medium text-gray-700">Pedidos Online</p>
                             <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                                {shift.onlineOrders ? shift.onlineOrders.replace(/,/g, ', ') : "Ninguno"}
+                                {shift.onlineOrders ? shift.onlineOrders.replace(/,/g, ', ') : "Sin pedidos"}
                             </p>
                         </div>
                     </div>
@@ -541,26 +541,26 @@ function PendingShiftCard({ shift, onReview }: { shift: ShiftData; onReview: (id
                     )}
 
                     <div className="space-y-2">
-                        <Label htmlFor={`notes-${shift.id}`}>Observaciones del cajero</Label>
+                        <Label htmlFor={`notes-${shift.id}`}>Observaciones del Cajero (opcional)</Label>
                         <Textarea
                             id={`notes-${shift.id}`}
                             value={reviewNotes}
                             onChange={(e) => setReviewNotes(e.target.value)}
-                            placeholder="Agrega observaciones sobre la revisión..."
+                            placeholder="Ingrese observaciones de la revisión..."
                             rows={3}
                             className="bg-white border-red-200 focus:border-red-500"
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label>N.º de cajero</Label>
+                        <Label>Número de Cajero</Label>
                         <Select value={cashierNumber} onValueChange={setCashierNumber}>
                             <SelectTrigger
                                 className={`bg-white text-base ${
                                     !cashierNumber && error ? 'border-red-500 focus:border-red-500' : ''
                                 }`}
                                 >
-                                <SelectValue placeholder="Selecciona n.º de cajero" />
+                                <SelectValue placeholder="Seleccione Número de Cajero" />
                             </SelectTrigger>
                             <SelectContent>
                                 {Array.from({ length: 12 }, (_, i) => `${i + 1}`).map((n) => (
@@ -572,7 +572,7 @@ function PendingShiftCard({ shift, onReview }: { shift: ShiftData; onReview: (id
                             </SelectContent>
                         </Select>
                         {error && !cashierNumber && (
-                            <p className="text-red-600 text-sm">Selecciona el n.º de cajero</p>
+                            <p className="text-red-600 text-sm">Seleccione Número de Cajero</p>
                         )}
                     </div>
 
@@ -581,7 +581,7 @@ function PendingShiftCard({ shift, onReview }: { shift: ShiftData; onReview: (id
                         className="w-full bg-green-600 hover:bg-green-700 h-12 text-base font-medium"
                         disabled={isReviewing}
                     >
-                        {isReviewing ? "Confirmando revisión..." : "Confirmar revisión"}
+                        {isReviewing ? "Procesando revisión..." : "Confirmar revisión"}
                     </Button>
                 </CardContent>
             )}
@@ -612,7 +612,7 @@ function ReviewedShiftCard({ shift }: { shift: ShiftData }) {
                         Repartidor {shift.driverId}
                     </CardTitle>
                     <Badge variant="default" className={`${isUnreviewed ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}`}>
-                        {isUnreviewed ? 'Sin Revisar' : 'Revisado'}
+                        {isUnreviewed ? 'Pendiente' : 'Revisado'}
                     </Badge>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-sm text-gray-600">
@@ -633,7 +633,7 @@ function ReviewedShiftCard({ shift }: { shift: ShiftData }) {
                         <p className={`font-medium ${isUnreviewed ? 'text-yellow-600' : 'text-green-600'}`}>{shift.totalTickets}</p>
                     </div>
                     <div className="text-center">
-                        <p className="text-gray-500 text-xs">Revisado por</p>
+                        <p className="text-gray-500 text-xs">Revisado Por</p>
                         <p className="font-medium">{shift.reviewedBy}</p>
                     </div>
                     <div className="text-center">

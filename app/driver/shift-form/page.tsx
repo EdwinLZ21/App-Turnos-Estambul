@@ -163,18 +163,18 @@ export default function ShiftForm() {
       currentShift.exitTime === "00:00"
 
     if (missingTimes || bothDefaultTimes) {
-      return ["ingrese los datos correctamente"]
+      return ["Ingrese los datos correctamente."]
     }
 
-    if (!currentShift.entryTime) errors.push("Ingresa la hora de entrada")
-    if (!currentShift.exitTime) errors.push("Ingresa la hora de salida")
+    if (!currentShift.entryTime) errors.push("Ingrese la hora de entrada.")
+    if (!currentShift.exitTime) errors.push("Ingrese la hora de salida.")
     if (currentShift.entryTime && currentShift.exitTime && currentShift.entryTime === currentShift.exitTime) {
-      errors.push("La hora de entrada y salida no deben ser las mismas")
+      errors.push("La hora de entrada y de salida no pueden ser iguales.")
     }
-    if (currentShift.hoursWorked < 2) errors.push("El turno debe ser de mínimo 2 horas")
-    if (currentShift.hoursWorked > 7) errors.push("Horas inválidas: no puede exceder 7 horas")
+    if (currentShift.hoursWorked < 2) errors.push("El turno debe tener al menos 2 horas.")
+    if (currentShift.hoursWorked > 7) errors.push("El turno no puede superar las 7 horas.")
     if (currentShift.molaresOrders && !currentShift.molaresOrderNumbers.trim()) {
-      errors.push("Indique los pedidos llevados")
+      errors.push("Indique los números de pedidos.")
     }
 
     if (currentShift.homeDeliveryOrders) {
@@ -188,9 +188,9 @@ export default function ShiftForm() {
       const invalidHome = homeOrders.some((n) => isNaN(n) || n < 1 || n > 128)
       const duplicateHome = new Set(homeOrders).size !== homeOrders.length
 
-      if (hasInvalidFormat) errors.push("Los pedidos a domicilio solo pueden contener números enteros positivos")
-      if (invalidHome) errors.push("Los pedidos a domicilio deben estar entre 1 y 128")
-      if (duplicateHome) errors.push("No puede haber pedidos a domicilio duplicados")
+      if (hasInvalidFormat) errors.push("Los pedidos a domicilio deben ser números enteros positivos.")
+      if (invalidHome) errors.push("Los pedidos a domicilio deben estar entre 1 y 128.")
+      if (duplicateHome) errors.push("No puede haber pedidos a domicilio duplicados.")
     }
 
     if (currentShift.onlineOrders) {
@@ -201,8 +201,8 @@ export default function ShiftForm() {
       const invalidOnline = onlineOrders.some((n) => !/^\d{5}$/.test(n))
       const duplicateOnline = new Set(onlineOrders).size !== onlineOrders.length
 
-      if (invalidOnline) errors.push("Los pedidos online deben ser números de 5 dígitos")
-      if (duplicateOnline) errors.push("No puede haber pedidos online duplicados")
+      if (invalidOnline) errors.push("Los pedidos online deben tener 5 dígitos.")
+      if (duplicateOnline) errors.push("No puede haber pedidos online duplicados.")
     }
 
     return errors
@@ -264,11 +264,11 @@ export default function ShiftForm() {
         router.push("/driver/dashboard")
       } else {
         console.log('❌ Error al guardar en Supabase')
-        setErrors(["Error al guardar en la base de datos. Intenta nuevamente."])
+        setErrors(["No se pudo guardar el turno. Intente nuevamente."])
       }
     } catch (error) {
     console.error("Error al enviar turno:", error)
-    setErrors(["Error de conexión. Verifica tu conexión a internet."])
+    setErrors(["Error de conexión. Verifique su acceso a Internet."])
     }
   }
 
@@ -366,7 +366,7 @@ export default function ShiftForm() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Formulario de Turno</h1>
-            <p className="text-gray-600">Completa todos los campos requeridos</p>
+            <p className="text-gray-600">Complete todos los campos obligatorios</p>
           </div>
         </div>
 
@@ -427,7 +427,7 @@ export default function ShiftForm() {
                 {/* Date */}
                 <div className="space-y-2">
                   <Label htmlFor="date" className="text-base font-medium">
-                    Fecha del turno
+                    Fecha del Turno
                   </Label>
                   <Input
                     id="date"
@@ -444,7 +444,7 @@ export default function ShiftForm() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="entryTime" className="text-base font-medium">
-                      Hora de entrada
+                      Hora de Entrada
                     </Label>
                     <Select value={currentShift.entryTime}onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, entryTime: value }))}>
                       <SelectTrigger className={`bg-white text-base ${isEntryTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
@@ -461,7 +461,7 @@ export default function ShiftForm() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="exitTime" className="text-base font-medium">
-                      Hora de salida
+                      Hora de Salida
                     </Label>
                     <Select value={currentShift.exitTime} onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, exitTime: value }))}>
                       <SelectTrigger className={`bg-white text-base ${isExitTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
@@ -480,7 +480,7 @@ export default function ShiftForm() {
 
                 {/* Cash Change */}
                 <div className="space-y-2">
-                  <Label className="text-base font-medium">Cambio de caja</Label>
+                  <Label className="text-base font-medium">Cambio de Caja</Label>
                   <div className="p-4 bg-gray-100 rounded-lg">
                     <span className="text-lg font-semibold">
                       {currentShift.cashChange.toFixed(2)} €
@@ -491,14 +491,14 @@ export default function ShiftForm() {
                 {/* Orders: Home Delivery */}
                 <div className="space-y-2">
                   <Label htmlFor="homeDelivery" className="text-base font-medium">
-                    Nº pedidos a domicilio (1-128)
+                    Número de Pedidos a Domicilio (1–128)
                     {isHomeInvalid && (
                       <span className="text-red-600 text-sm ml-2">valor inválido</span>
                     )}
                   </Label>
                   <Textarea
                     id="homeDelivery"
-                    placeholder="Ej: 45, 67, 89"
+                    placeholder="p. ej.: 45, 67, 89"
                     value={currentShift.homeDeliveryOrders}
                     onChange={(e) =>
                       setCurrentShift((prev) => ({
@@ -518,7 +518,7 @@ export default function ShiftForm() {
                 {/* Orders: Online */}
                 <div className="space-y-2">
                   <Label htmlFor="onlineOrders" className="text-base font-medium">
-                    Nº pedidos online (5 dígitos)
+                    Número de Pedidos Online (5 dígitos)
                     {isOnlineInvalid && (
                       <span className="text-red-600 text-sm ml-2">valor inválido</span>
                     )}
@@ -560,13 +560,13 @@ export default function ShiftForm() {
                       htmlFor="molares"
                       className="text-base font-medium text-blue-800 cursor-pointer"
                     >
-                      Viaje a Molares (+1€)
+                      Pedido a Molares (+1 €)
                     </Label>
                   </div>
                   {currentShift.molaresOrders && (
                     <div className="space-y-1">
                       <Textarea
-                        placeholder="Números de pedidos a Molares"
+                        placeholder="Números de Pedidos a Molares"
                         value={currentShift.molaresOrderNumbers}
                         onChange={(e) =>
                           setCurrentShift((prev) => ({
@@ -606,7 +606,7 @@ export default function ShiftForm() {
                     </Label>
                     <Textarea
                       id="incidents"
-                      placeholder="Describe cualquier incidencia ocurrida durante el turno..."
+                      placeholder="Describe cualquier incidencia durante el turno..."
                       value={currentShift.incidents}
                       onChange={(e) =>
                         setCurrentShift((prev) => ({
@@ -622,29 +622,29 @@ export default function ShiftForm() {
                 <div className="space-y-4 border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
                   <div className="flex items-center gap-2 mb-2">
                     <DollarSign className="h-5 w-5 text-blue-600" />
-                    <h3 className="text-lg font-semibold text-blue-800">Pago a Repartidor</h3>
+                    <h3 className="text-lg font-semibold text-blue-800">Pago al Repartidor</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-base font-medium">Tiempo trabajado</Label>
+                      <Label className="text-base font-medium">Tiempo Trabajado</Label>
                       <div className="p-4 bg-white rounded-lg">
                         <span className="text-lg font-semibold">{currentShift.hoursWorked}h</span>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-base font-medium">Total tickets</Label>
+                      <Label className="text-base font-medium">Total de Tickets</Label>
                       <div className="p-4 bg-white rounded-lg">
                         <span className="text-lg font-semibold">{currentShift.totalTickets}</span>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-base font-medium">Importe pedidos</Label>
+                      <Label className="text-base font-medium">Importe de Pedidos</Label>
                       <div className="p-4 bg-white rounded-lg">
                         <span className="text-lg font-semibold">{currentShift.totalAmount.toFixed(2)} €</span>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-base font-medium">Total cobrado</Label>
+                      <Label className="text-base font-medium">Total Cobrado</Label>
                       <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">
                         <span className="text-lg font-bold text-blue-700">{currentShift.totalEarned.toFixed(2)} €</span>
                       </div>
@@ -662,7 +662,7 @@ export default function ShiftForm() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="totalSales" className="text-base font-medium text-green-800">
-                        Total venta Pedidos (€)
+                        Total Venta Pedidos (€)
                       </Label>
                       <Input
                         id="totalSales"
@@ -685,7 +685,7 @@ export default function ShiftForm() {
 
                     <div className="space-y-2">
                       <Label htmlFor="totalDatafono" className="text-base font-medium text-green-800">
-                        Total pedidos cobrados con datafono (€)
+                        Total de Pedidos Cobrados con Datáfono (€)
                       </Label>
                       <Input
                         id="totalDatafono"
@@ -707,7 +707,7 @@ export default function ShiftForm() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-base font-medium text-green-800">Total caja neto</Label>
+                      <Label className="text-base font-medium text-green-800">Total Caja Neto</Label>
                       <div className="p-4 bg-green-200 border-2 border-green-400 rounded-lg">
                         <span
                           className={`text-xl font-bold ${currentShift.totalCajaNeto < 0 ? "text-red-700" : "text-green-800"}`}
