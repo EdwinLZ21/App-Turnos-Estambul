@@ -13,11 +13,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, AlertCircle, CheckCircle, DollarSign } from "lucide-react"
-import { ShiftManager, DRAFT_KEY, SHIFT_ID_KEY } from "@/lib/shift-manager"
+import { ShiftManager } from "@/lib/shift-manager"
 import { InactivityMonitor } from "@/components/inactivity-monitor"
 import Image from "next/image"
 
-interface ShiftData { 
+interface ShiftData {
   date: string
   entryTime: string
   exitTime: string
@@ -38,16 +38,14 @@ interface ShiftData {
 
 export default function ShiftForm() {
   const router = useRouter()
-  const userId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "" : ""
-  
-  const [isRejectedShift, setIsRejectedShift] = useState(false)
   const [currentShift, setCurrentShift] = useState<ShiftData>(() => {
-    // Primero intentar cargar desde localStorage
-    const saved = userId ? localStorage.getItem(DRAFT_KEY(userId)) : null
-    if (saved) {
-      try { return JSON.parse(saved) } catch {}
+    const userId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "" : ""
+    const savedShift = typeof window !== 'undefined' ? localStorage.getItem(`currentShiftDraft_${userId}`) : null
+    if (savedShift) {
+      try {
+        return JSON.parse(savedShift)
+      } catch {}
     }
-    // Estado inicial por defecto
     return {
       date: new Date().toISOString().split("T")[0],
       entryTime: "00:00",
@@ -67,140 +65,108 @@ export default function ShiftForm() {
       totalCajaNeto: 0,
     }
   })
-
   const [errors, setErrors] = useState<string[]>([])
   const [submitted, setSubmitted] = useState(false)
   const [bonusMessage, setBonusMessage] = useState<string>("")
 
-  // 1. Verificar si hay turno rechazado al cargar
   useEffect(() => {
-    const checkRejectedShift = async () => {
-      if (!userId) return
-      
+    const userId = localStorage.getItem("userId") || ""
+    const savedShift = localStorage.getItem(`currentShiftDraft_${userId}`)
+    if (savedShift) {
       try {
-        const driverEmail = `driver${userId}@estambul.com`
-        const shifts = await ShiftManager.getDriverShifts(driverEmail)
-        
-        // Buscar turno con status "rejected" 
-        const rejectedShift = shifts.find(shift => shift.status === "rejected")
-        
-        if (rejectedShift) {
-          // Cargar datos del turno rechazado como borrador
-          const rejectedDraft: ShiftData = {
-            date: rejectedShift.date,
-            entryTime: rejectedShift.entryTime,
-            exitTime: rejectedShift.exitTime,
-            cashChange: 50.1, // valor por defecto
-            homeDeliveryOrders: "", // el usuario debe reingresarlos
-            onlineOrders: "",
-            incidents: rejectedShift.incidents || "",
-            hoursWorked: rejectedShift.hoursWorked,
-            totalTickets: rejectedShift.ticketsDelivered,
-            totalAmount: rejectedShift.ticketsDelivered * 0.5,
-            totalEarned: rejectedShift.netTotal,
-            molaresOrders: false,
-            molaresOrderNumbers: "",
-            totalSalesPedidos: 0,
-            totalDatafono: 0,
-            totalCajaNeto: 0,
-          }
-          
-          setCurrentShift(rejectedDraft)
-          localStorage.setItem(DRAFT_KEY(userId), JSON.stringify(rejectedDraft))
-          setIsRejectedShift(true)
-        }
+        const parsedShift = JSON.parse(savedShift)
+        setCurrentShift(parsedShift)
       } catch (error) {
-        console.error("Error checking rejected shifts:", error)
+        console.error("Error loading saved shift:", error)
       }
     }
-    
-    checkRejectedShift()
-  }, [userId])
+  }, [])
 
-  // 2. Guardar borrador en cada cambio
-  useEffect(() => {
-    if (userId) {
-      localStorage.setItem(DRAFT_KEY(userId), JSON.stringify(currentShift))
-    }
-  }, [currentShift, userId])
-
-  // 3. Ensure default initialization to 00:00 when missing
+  // Ensure default initialization to 00:00 when missing
   useEffect(() => {
     setCurrentShift((prev) => ({
       ...prev,
       entryTime: prev.entryTime || "00:00",
       exitTime: prev.exitTime || "00:00",
     }))
+    // Run once after mount and potential draft load
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 4. Cálculo horasWorked
+  useEffect(() => {
+    const userId = localStorage.getItem("userId") || ""
+    localStorage.setItem(`currentShiftDraft_${userId}`, JSON.stringify(currentShift))
+  }, [currentShift])
+
   useEffect(() => {
     if (currentShift.entryTime && currentShift.exitTime) {
       const [entryHour, entryMin] = currentShift.entryTime.split(":").map(Number)
       const [exitHour, exitMin] = currentShift.exitTime.split(":").map(Number)
+
       const entryMinutes = entryHour * 60 + entryMin
       let exitMinutes = exitHour * 60 + exitMin
+
       if (exitMinutes < entryMinutes) {
         exitMinutes += 24 * 60
       }
+
       const diffMinutes = exitMinutes - entryMinutes
       const diffHours = diffMinutes / 60
       const roundedHours = Math.round(diffHours * 2) / 2
+
       setCurrentShift((prev) => ({ ...prev, hoursWorked: roundedHours }))
     }
   }, [currentShift.entryTime, currentShift.exitTime])
 
-  // 5. Cálculo totales y bono
-  useEffect(() => {
-    const homeDeliveryCount = currentShift.homeDeliveryOrders
-      .split(",")
-      .filter((n: string) => n.trim()).length
-    const onlineCount = currentShift.onlineOrders
-      .split(",")
-      .filter((n: string) => n.trim()).length
-    const totalTickets = homeDeliveryCount + onlineCount
-    const totalAmount = totalTickets * 0.5
-    const hoursEarned = currentShift.hoursWorked * 6
-    const molaresBonus = currentShift.molaresOrders ? 1 : 0
+useEffect(() => {
+  const homeDeliveryCount = currentShift.homeDeliveryOrders
+    .split(",")
+    .filter((n: string) => n.trim()).length
+  const onlineCount = currentShift.onlineOrders
+    .split(",")
+    .filter((n: string) => n.trim()).length
+  const totalTickets = homeDeliveryCount + onlineCount
+  const totalAmount = totalTickets * 0.5
+  const hoursEarned = currentShift.hoursWorked * 6
+  const molaresBonus = currentShift.molaresOrders ? 1 : 0
 
-    // Mensajes y bonos por metas
-    let bonusEuros = 0
-    let bonusMsg = ""
+  // Mensajes y bonos por metas
+  let bonusEuros = 0
+  let bonusMsg = ""
 
-    if (totalTickets >= 31) {
-      bonusEuros = 2.5
-      bonusMsg = "💪 ¡Eres una máquina! Llegaste a 31 pedidos y ganaste 2,50 € extra. ¡Imparable!"
-    } else if (totalTickets >= 21) {
-      bonusEuros = 1.5
-      bonusMsg = "🚀 ¡Súper meta! Completaste 21 pedidos y ganaste 1,50 € extra. ¡A por más!"
-    } else if (totalTickets >= 11) {
-      bonusEuros = 0.5
-      bonusMsg = "🎉 ¡Buen comienzo! Alcanzaste 11 pedidos y ganaste 0,50 € extra. Sigue así."
-    } else {
-      bonusMsg = "🌟 Sigue esforzándote: alcanza 11 pedidos para ganar un bono."
-    }
+  if (totalTickets >= 31) {
+    bonusEuros = 2.5
+    bonusMsg = "💪 ¡Eres una máquina! Llegaste a 31 pedidos y ganaste 2,50 € extra. ¡Imparable!"
+  } else if (totalTickets >= 21) {
+    bonusEuros = 1.5
+    bonusMsg = "🚀 ¡Súper meta! Completaste 21 pedidos y ganaste 1,50 € extra. ¡A por más!"
+  } else if (totalTickets >= 11) {
+    bonusEuros = 0.5
+    bonusMsg = "🎉 ¡Buen comienzo! Alcanzaste 11 pedidos y ganaste 0,50 € extra. Sigue así."
+  } else {
+    bonusMsg = "🌟 Sigue esforzándote: alcanza 11 pedidos para ganar un bono."
+  }
 
-    const totalEarned = hoursEarned + totalAmount + molaresBonus + bonusEuros
-    const totalCajaNeto = currentShift.totalSalesPedidos - currentShift.totalDatafono
+  const totalEarned = hoursEarned + totalAmount + molaresBonus + bonusEuros
+  const totalCajaNeto = currentShift.totalSalesPedidos - currentShift.totalDatafono
 
-    setCurrentShift(prev => ({
-      ...prev,
-      totalTickets,
-      totalAmount,
-      totalEarned,
-      totalCajaNeto,
-    }))
+  setCurrentShift(prev => ({
+    ...prev,
+    totalTickets,
+    totalAmount,
+    totalEarned,
+    totalCajaNeto,
+  }))
 
-    setBonusMessage(bonusMsg)
-  }, [
-    currentShift.homeDeliveryOrders,
-    currentShift.onlineOrders,
-    currentShift.hoursWorked,
-    currentShift.molaresOrders,
-    currentShift.totalSalesPedidos,
-    currentShift.totalDatafono,
-  ])
+  setBonusMessage(bonusMsg)
+}, [
+  currentShift.homeDeliveryOrders,
+  currentShift.onlineOrders,
+  currentShift.hoursWorked,
+  currentShift.molaresOrders,
+  currentShift.totalSalesPedidos,
+  currentShift.totalDatafono,
+])
 
   const handleLogout = () => {
     localStorage.removeItem("userId")
@@ -267,11 +233,11 @@ export default function ShiftForm() {
     return errors
   }
 
-  // Envío usando ShiftManager
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitted(true)
     const validationErrors = validateForm()
+
     if (hasInlineInvalid || validationErrors.length > 0) {
       setErrors(validationErrors)
       return
@@ -300,22 +266,54 @@ export default function ShiftForm() {
 
       if (success) {
         console.log('✅ Turno guardado exitosamente!')
-        // Al enviar exitosamente, resetear el flag de rechazado
-        setIsRejectedShift(false)
+
+        // 1. Prepara el objeto pendingShift
+        const pendingShift = {
+          ...currentShift,
+          id: shift.id,
+          driverId: driverId,
+          status: "pending" as const,
+          submittedAt: new Date().toISOString(),
+        }
+
+        // 2. Guarda en localStorage para que el cajero lo vea
+        localStorage.setItem(`currentShift_${driverId}`, JSON.stringify(pendingShift))
+        localStorage.setItem(`shiftSubmitted_${driverId}`, "true")
+        // 3. **Elimina** el borrador y el turno activo para que no vuelva a listarse
+        localStorage.removeItem(`currentShiftDraft_${driverId}`)
+        localStorage.removeItem(`currentShift_${driverId}`) 
+
+        // 4. Notifica a otros listeners (modal de login, dashboard) que cambió el storage
+        window.dispatchEvent(new Event('storage'))
+        // 5. Redirige al repartidor
         router.push("/driver/dashboard")
       } else {
         console.log('❌ Error al guardar en Supabase')
         setErrors(["No se pudo guardar el turno. Intente nuevamente."])
       }
     } catch (error) {
-      console.error("Error al enviar turno:", error)
-      setErrors(["Error de conexión. Verifique su acceso a Internet."])
+    console.error("Error al enviar turno:", error)
+    setErrors(["Error de conexión. Verifique su acceso a Internet."])
     }
   }
 
+
   const handleBackToPanel = () => {
+    const userId = localStorage.getItem("userId") || ""
+    // Guardar como borrador para mantener el estado
+    localStorage.setItem(`currentShiftDraft_${userId}`, JSON.stringify(currentShift))
+    // También guardar como turno actual para mantener el estado
+    localStorage.setItem(`currentShift_${userId}`, JSON.stringify(currentShift))
     router.push("/driver/dashboard")
   }
+
+  // Guardar automáticamente el borrador cada vez que cambie
+  useEffect(() => {
+    const userId = localStorage.getItem("userId") || ""
+    if (userId && currentShift) {
+      localStorage.setItem(`currentShiftDraft_${userId}`, JSON.stringify(currentShift))
+    }
+  }, [currentShift])
 
   const generateTimeOptions = () => {
     const options = []
@@ -473,7 +471,7 @@ export default function ShiftForm() {
                     <Label htmlFor="entryTime" className="text-base font-medium">
                       Hora de Entrada
                     </Label>
-                    <Select value={currentShift.entryTime} onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, entryTime: value }))}>
+                    <Select value={currentShift.entryTime}onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, entryTime: value }))}>
                       <SelectTrigger className={`bg-white text-base ${isEntryTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
                         <SelectValue placeholder="00:00" />
                       </SelectTrigger>
@@ -771,7 +769,7 @@ export default function ShiftForm() {
                 )}
 
                 <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" size="lg">
-                  {isRejectedShift ? "Reenviar a Revisión" : "Enviar a Revisión"}
+                  Enviar a Revisión
                 </Button>
               </form>
             </CardContent>

@@ -1,5 +1,4 @@
-//esto es un comentario para probar commit
-"use client"
+  "use client"
 
 import type React from "react"
 
