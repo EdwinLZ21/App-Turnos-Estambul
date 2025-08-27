@@ -17,6 +17,22 @@ import { ShiftManager } from "@/lib/shift-manager"
 import { InactivityMonitor } from "@/components/inactivity-monitor"
 import Image from "next/image"
 
+// Persiste turno activo y borrador en LocalStorage
+function persistCurrentShift(userId: string, shift: ShiftData | null) {
+  if (!userId || !shift) return
+  localStorage.setItem(`currentShift_${userId}`, JSON.stringify(shift))
+  localStorage.setItem(`currentShiftDraft_${userId}`, JSON.stringify(shift))
+  // Notificar a otros componentes (p.ej. el login)
+  window.dispatchEvent(new Event("storage"))
+}
+
+// Simula actividad para resetear el monitor de inactividad
+const simulateActivity = () => {
+  const events = ["mousemove", "mousedown", "touchstart", "pointerdown", "keypress"]
+  events.forEach((name) => document.dispatchEvent(new Event(name)))
+}
+
+
 interface ShiftData {
   date: string
   entryTime: string
@@ -168,11 +184,18 @@ useEffect(() => {
   currentShift.totalDatafono,
 ])
 
-  const handleLogout = () => {
-    localStorage.removeItem("userId")
-    localStorage.removeItem("userRole")
-    router.push("/login")
-  }
+const handleLogout = () => {
+  const uid = localStorage.getItem("userId") || ""
+  const draftRaw = localStorage.getItem(`currentShiftDraft_${uid}`)
+  const draft: ShiftData | null = draftRaw ? JSON.parse(draftRaw) : null
+  // Persiste turno activo y borrador
+  persistCurrentShift(uid, draft)
+  // Limpia sesión
+  localStorage.removeItem("userId")
+  localStorage.removeItem("userRole")
+  router.push("/login")
+}
+
 
   const validateForm = (): string[] => {
     const errors: string[] = []
@@ -375,408 +398,386 @@ useEffect(() => {
   const isEntryTimeError = submitted && (isEntryTimeDefaultOrMissing || areTimesEqual || isTooShort || isTooLong || bothDefaultTimes)
   const isExitTimeError = submitted && (isExitTimeDefaultOrMissing || areTimesEqual || isTooShort || isTooLong || bothDefaultTimes)
 
-  return (
-    <AuthGuard requiredRole="driver">
-      <InactivityMonitor onLogout={handleLogout} />
+return (
+  <AuthGuard requiredRole="driver">
+    <InactivityMonitor onLogout={handleLogout} />
 
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-6">
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="outline"
-            onClick={handleBackToPanel}
-            className="border-red-200 hover:bg-red-50 bg-transparent"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver al Panel
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Formulario de Turno</h1>
-            <p className="text-gray-600">Complete todos los campos obligatorios</p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-white p-6">
+      <div className="flex items-center gap-4 mb-8">
+        <Button
+          variant="outline"
+          onPointerDown={() => simulateActivity()}
+          onClick={handleBackToPanel}
+          className="border-red-200 hover:bg-red-50 bg-transparent"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver al Panel
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Formulario de Turno</h1>
+          <p className="text-gray-600">Complete todos los campos obligatorios</p>
         </div>
+      </div>
 
-        <div className="max-w-2xl mx-auto">
-          <Card className="border-red-200 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-red-600 to-red-500 text-white rounded-t-lg shadow-lg p-6">
-              <div className="text-center">
-                <CardTitle className="text-3xl font-extrabold mb-1">
-                  {currentShift && currentShift.entryTime !== "00:00" && currentShift.exitTime !== "00:00"
+      <div className="max-w-2xl mx-auto">
+        <Card className="border-red-200 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-red-600 to-red-500 text-white rounded-t-lg shadow-lg p-6">
+            <div className="text-center">
+              <CardTitle className="text-3xl font-extrabold mb-1">
+                {currentShift.entryTime !== "00:00" && currentShift.exitTime !== "00:00"
                   ? "Continuar Turno"
                   : "Nuevo Turno"}
-                </CardTitle>
-                <CardDescription className="text-red-100 font-medium text-lg">
-                  Fecha: {currentShift.date
-                  ? new Date(currentShift.date).toLocaleDateString("es-ES")
-                  : new Date().toLocaleDateString("es-ES")}
-                </CardDescription>
-              </div>
+              </CardTitle>
+              <CardDescription className="text-red-100 font-medium text-lg">
+                Fecha: {new Date(currentShift.date).toLocaleDateString("es-ES")}
+              </CardDescription>
+            </div>
 
-              {currentShift && currentShift.entryTime !== "00:00" && currentShift.exitTime !== "00:00" && (
+            {currentShift.entryTime !== "00:00" && currentShift.exitTime !== "00:00" && (
               <div className="mt-6 bg-red-700 text-white rounded-lg p-5 border border-red-600 mx-4">
                 <div className="text-center text-xl font-bold mb-4">RESUMEN</div>
-
                 <div className="mb-4">
                   <div className="text-base font-semibold mb-1">Horario:</div>
-                  <div className="text-sm ml-4">{currentShift.entryTime} - {currentShift.exitTime}</div>
+                  <div className="text-sm ml-4">
+                    {currentShift.entryTime} - {currentShift.exitTime}
+                  </div>
                 </div>
-
                 <div className="mb-4">
                   <div className="text-base font-semibold mb-1">Pedidos a domicilio:</div>
                   <div className="ml-4 flex flex-wrap gap-1">
-                    {currentShift.homeDeliveryOrders? currentShift.homeDeliveryOrders.split(',').map((pedido, i) => (
-                      <span key={i} className="text-xs font-mono bg-red-600/40 px-2 py-1 rounded">
-                        {pedido.trim()}
-                      </span>
-                    ))
-                   : <span className="text-sm">Ninguno</span>}
+                    {currentShift.homeDeliveryOrders
+                      ? currentShift.homeDeliveryOrders.split(',').map((pedido, i) => (
+                          <span key={i} className="text-xs font-mono bg-red-600/40 px-2 py-1 rounded">
+                            {pedido.trim()}
+                          </span>
+                        ))
+                      : <span className="text-sm">Ninguno</span>}
                   </div>
                 </div>
-
                 <div>
                   <div className="text-base font-semibold mb-1">Pedidos online:</div>
                   <div className="ml-4 flex flex-wrap gap-1">
-                    {currentShift.onlineOrders? currentShift.onlineOrders.split(',').map((pedido, i) => (
-                      <span key={i} className="text-xs font-mono bg-red-600/40 px-2 py-1 rounded">
-                        {pedido.trim()}
-                      </span>
-                    ))
-                    : <span className="text-sm">Ninguno</span>}
+                    {currentShift.onlineOrders
+                      ? currentShift.onlineOrders.split(',').map((pedido, i) => (
+                          <span key={i} className="text-xs font-mono bg-red-600/40 px-2 py-1 rounded">
+                            {pedido.trim()}
+                          </span>
+                        ))
+                      : <span className="text-sm">Ninguno</span>}
                   </div>
                 </div>
               </div>
-              )}
-            </CardHeader>
+            )}
+          </CardHeader>
 
-            <CardContent className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Date */}
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Date */}
+              <div className="space-y-2">
+                <Label htmlFor="date" className="text-base font-medium">
+                  Fecha del Turno
+                </Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={currentShift.date}
+                  onFocus={() => simulateActivity()}
+                  onChange={(e) => {
+                    simulateActivity()
+                    setCurrentShift(prev => ({ ...prev, date: e.target.value }))
+                  }}
+                  className="text-base bg-white"
+                />
+              </div>
+
+              {/* Entry and Exit Time */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="text-base font-medium">
-                    Fecha del Turno
+                  <Label htmlFor="entryTime" className="text-base font-medium">
+                    Hora de Entrada
                   </Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={currentShift.date}
-                    onChange={(e) =>
-                      setCurrentShift((prev) => ({ ...prev, date: e.target.value }))
-                    }
-                    className="text-base bg-white"
-                  />
+                  <Select
+                    value={currentShift.entryTime}
+                    onValueChange={(value) => {
+                      simulateActivity()
+                      setCurrentShift(prev => ({ ...prev, entryTime: value }))
+                    }}
+                  >
+                    <SelectTrigger className={`bg-white text-base ${isEntryTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
+                      <SelectValue placeholder="00:00" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {generateTimeOptions().map(time => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="exitTime" className="text-base font-medium">
+                    Hora de Salida
+                  </Label>
+                  <Select
+                    value={currentShift.exitTime}
+                    onValueChange={(value) => {
+                      simulateActivity()
+                      setCurrentShift(prev => ({ ...prev, exitTime: value }))
+                    }}
+                  >
+                    <SelectTrigger className={`bg-white text-base ${isExitTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
+                      <SelectValue placeholder="00:00" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {generateTimeOptions().map(time => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-                {/* Entry and Exit Time */}
+              {/* Cash Change */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Cambio de Caja</Label>
+                <div className="p-4 bg-gray-100 rounded-lg">
+                  <span className="text-lg font-semibold">
+                    {currentShift.cashChange.toFixed(2)} €
+                  </span>
+                </div>
+              </div>
+
+              {/* Orders: Home Delivery */}
+              <div className="space-y-2">
+                <Label htmlFor="homeDelivery" className="text-base font-medium">
+                  Número de Pedidos a Domicilio (1–128)
+                  {isHomeInvalid && <span className="text-red-600 text-sm ml-2">valor inválido</span>}
+                </Label>
+                <Textarea
+                  id="homeDelivery"
+                  placeholder="p. ej.: 45, 67, 89"
+                  value={currentShift.homeDeliveryOrders}
+                  onFocus={() => simulateActivity()}
+                  onChange={(e) => {
+                    simulateActivity()
+                    setCurrentShift(prev => ({ ...prev, homeDeliveryOrders: e.target.value }))
+                  }}
+                  className={`
+                    text-base bg-white h-24 resize-y overflow-auto whitespace-pre-wrap break-words
+                    ${isHomeInvalid ? "border-red-500 focus:border-red-600" : ""}
+                  `}
+                />
+              </div>
+
+              {/* Orders: Online */}
+              <div className="space-y-2">
+                <Label htmlFor="onlineOrders" className="text-base font-medium">
+                  Número de Pedidos Online (5 dígitos)
+                  {isOnlineInvalid && <span className="text-red-600 text-sm ml-2">valor inválido</span>}
+                </Label>
+                <Textarea
+                  id="onlineOrders"
+                  placeholder="Ej: 12345, 67890"
+                  value={currentShift.onlineOrders}
+                  onFocus={() => simulateActivity()}
+                  onChange={(e) => {
+                    simulateActivity()
+                    setCurrentShift(prev => ({ ...prev, onlineOrders: e.target.value }))
+                  }}
+                  className={`
+                    text-base bg-white h-24 resize-y overflow-auto whitespace-pre-wrap break-words
+                    ${isOnlineInvalid ? "border-red-500 focus:border-red-600" : ""}
+                  `}
+                />
+              </div>
+
+              {/* Molares Orders */}
+              <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="molares"
+                    checked={currentShift.molaresOrders}
+                    onPointerDown={() => simulateActivity()}
+                    onCheckedChange={(checked) => {
+                      simulateActivity()
+                      setCurrentShift(prev => ({ ...prev, molaresOrders: checked as boolean }))
+                    }}
+                    className="w-5 h-5 border-2 border-blue-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                  />
+                  <Label htmlFor="molares" className="text-base font-medium text-blue-800 cursor-pointer">
+                    Pedido a Molares (+1 €)
+                  </Label>
+                </div>
+                {currentShift.molaresOrders && (
+                  <Textarea
+                    placeholder="Números de Pedidos a Molares"
+                    value={currentShift.molaresOrderNumbers}
+                    onFocus={() => simulateActivity()}
+                    onChange={(e) => {
+                      simulateActivity()
+                      setCurrentShift(prev => ({ ...prev, molaresOrderNumbers: e.target.value }))
+                    }}
+                    className={`
+                      text-base bg-white h-24 resize-y overflow-auto whitespace-pre-wrap break-words
+                      ${(isMolaresInvalid || isMolaresNonexistent) ? "border-red-500 focus:border-red-600" : ""}
+                    `}
+                  />
+                )}
+                {currentShift.molaresOrders && !currentShift.molaresOrderNumbers.trim() && (
+                  <span className="text-red-600 text-sm">Indique los pedidos llevados</span>
+                )}
+                {currentShift.molaresOrders && currentShift.molaresOrderNumbers.trim() && isMolaresNonexistent && (
+                  <span className="text-red-600 text-sm">pedido inexistente</span>
+                )}
+              </div>
+
+              {/* Incidencias */}
+              <div className="space-y-2">
+                <Label htmlFor="incidents" className="text-base font-medium">Incidencias</Label>
+                <Textarea
+                  id="incidents"
+                  placeholder="Describe cualquier incidencia durante el turno..."
+                  value={currentShift.incidents}
+                  onFocus={() => simulateActivity()}
+                  onChange={(e) => {
+                    simulateActivity()
+                    setCurrentShift(prev => ({ ...prev, incidents: e.target.value }))
+                  }}
+                  className="text-base bg-white h-24 resize-y overflow-auto whitespace-pre-wrap break-words"
+                />
+              </div>
+
+              {/* Calculated Fields */}
+              <div className="space-y-4 border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-blue-800">Pago al Repartidor</h3>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="entryTime" className="text-base font-medium">
-                      Hora de Entrada
-                    </Label>
-                    <Select value={currentShift.entryTime}onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, entryTime: value }))}>
-                      <SelectTrigger className={`bg-white text-base ${isEntryTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
-                        <SelectValue placeholder="00:00" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {generateTimeOptions().map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {time}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-base font-medium">Tiempo Trabajado</Label>
+                    <div className="p-4 bg-white rounded-lg">
+                      <span className="text-lg font-semibold">{currentShift.hoursWorked}h</span>
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="exitTime" className="text-base font-medium">
-                      Hora de Salida
-                    </Label>
-                    <Select value={currentShift.exitTime} onValueChange={(value) => setCurrentShift((prev) => ({ ...prev, exitTime: value }))}>
-                      <SelectTrigger className={`bg-white text-base ${isExitTimeError ? "border-red-500 focus:border-red-600" : ""}`}>
-                        <SelectValue placeholder="00:00" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {generateTimeOptions().map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {time}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-base font-medium">Total de Tickets</Label>
+                    <div className="p-4 bg-white rounded-lg">
+                      <span className="text-lg font-semibold">{currentShift.totalTickets}</span>
+                    </div>
                   </div>
-                </div>
-
-                {/* Cash Change */}
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Cambio de Caja</Label>
-                  <div className="p-4 bg-gray-100 rounded-lg">
-                    <span className="text-lg font-semibold">
-                      {currentShift.cashChange.toFixed(2)} €
-                    </span>
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium">Importe de Pedidos</Label>
+                    <div className="p-4 bg-white rounded-lg">
+                      <span className="text-lg font-semibold">{currentShift.totalAmount.toFixed(2)} €</span>
+                    </div>
                   </div>
-                </div>
-
-                {/* Orders: Home Delivery */}
-                <div className="space-y-2">
-                  <Label htmlFor="homeDelivery" className="text-base font-medium">
-                    Número de Pedidos a Domicilio (1–128)
-                    {isHomeInvalid && (
-                      <span className="text-red-600 text-sm ml-2">valor inválido</span>
-                    )}
-                  </Label>
-                  <Textarea
-                    id="homeDelivery"
-                    placeholder="p. ej.: 45, 67, 89"
-                    value={currentShift.homeDeliveryOrders}
-                    onChange={(e) =>
-                      setCurrentShift((prev) => ({
-                        ...prev,
-                        homeDeliveryOrders: e.target.value,
-                      }))
-                    }
-                    className={`
-                      text-base bg-white
-                      h-24 resize-y overflow-auto
-                      whitespace-pre-wrap break-words
-                      ${isHomeInvalid ? "border-red-500 focus:border-red-600" : ""}
-                    `}
-                  />
-                </div>
-
-                {/* Orders: Online */}
-                <div className="space-y-2">
-                  <Label htmlFor="onlineOrders" className="text-base font-medium">
-                    Número de Pedidos Online (5 dígitos)
-                    {isOnlineInvalid && (
-                      <span className="text-red-600 text-sm ml-2">valor inválido</span>
-                    )}
-                  </Label>
-                  <Textarea
-                    id="onlineOrders"
-                    placeholder="Ej: 12345, 67890"
-                    value={currentShift.onlineOrders}
-                    onChange={(e) =>
-                      setCurrentShift((prev) => ({
-                        ...prev,
-                        onlineOrders: e.target.value,
-                      }))
-                    }
-                    className={`
-                      text-base bg-white
-                      h-24 resize-y overflow-auto
-                      whitespace-pre-wrap break-words
-                      ${isOnlineInvalid ? "border-red-500 focus:border-red-600" : ""}
-                    `}
-                  />
-                </div>
-
-                {/* Molares Orders */}
-                <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="molares"
-                      checked={currentShift.molaresOrders}
-                      onCheckedChange={(checked) =>
-                        setCurrentShift((prev) => ({
-                          ...prev,
-                          molaresOrders: checked as boolean,
-                        }))
-                      }
-                      className="w-5 h-5 border-2 border-blue-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                    />
-                    <Label
-                      htmlFor="molares"
-                      className="text-base font-medium text-blue-800 cursor-pointer"
-                    >
-                      Pedido a Molares (+1 €)
-                    </Label>
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium">Total Cobrado</Label>
+                    <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">
+                      <span className="text-lg font-bold text-blue-700">{currentShift.totalEarned.toFixed(2)} €</span>
+                    </div>
                   </div>
-                  {currentShift.molaresOrders && (
-                    <div className="space-y-1">
-                      <Textarea
-                        placeholder="Números de Pedidos a Molares"
-                        value={currentShift.molaresOrderNumbers}
-                        onChange={(e) =>
-                          setCurrentShift((prev) => ({
-                            ...prev,
-                            molaresOrderNumbers: e.target.value,
-                          }))
-                        }
-                        className={`
-                          text-base bg-white
-                          h-24 resize-y overflow-auto
-                          whitespace-pre-wrap break-words
-                          ${(!currentShift.molaresOrderNumbers.trim() ||
-                            (currentShift.molaresOrderNumbers.trim() &&
-                              molaresTokens.some((t) => !allowedOrderTokens.has(t))))
-                            ? "border-red-500 focus:border-red-600"
-                            : ""
-                          }
-                        `}
-                      />
-                      {!currentShift.molaresOrderNumbers.trim() && (
-                        <span className="text-red-600 text-sm">
-                          Indique los pedidos llevados
-                        </span>
-                      )}
-                      {currentShift.molaresOrderNumbers.trim() &&
-                        molaresTokens.some((t) => !allowedOrderTokens.has(t)) && (
-                          <span className="text-red-600 text-sm">pedido inexistente</span>
-                        )}
+                  {bonusMessage && (
+                    <div className="space-y-2 col-span-2">
+                      <Label className="text-base font-medium">Bono por Pedidos</Label>
+                      <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">
+                        <span className="text-lg font-semibold text-blue-700">{bonusMessage}</span>
+                      </div>
                     </div>
                   )}
                 </div>
+              </div>
 
-                  {/* Incidencias */}
+              {/* Ingresos de Caja */}
+              <div className="space-y-6 border-2 border-green-200 rounded-lg p-6 bg-green-50">
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <h3 className="text-xl font-bold text-green-800">Ingresos de Caja</h3>
+                </div>
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="incidents" className="text-base font-medium">
-                      Incidencias
+                    <Label htmlFor="totalSales" className="text-base font-medium text-green-800">
+                      Total Venta Pedidos (€)
                     </Label>
-                    <Textarea
-                      id="incidents"
-                      placeholder="Describe cualquier incidencia durante el turno..."
-                      value={currentShift.incidents}
-                      onChange={(e) =>
-                        setCurrentShift((prev) => ({
-                          ...prev,
-                          incidents: e.target.value,
-                        }))
-                      }
-                      className="text-base bg-white h-24 resize-y overflow-auto whitespace-pre-wrap break-words"
+                    <Input
+                      id="totalSales"
+                      type="number"
+                      step="any"
+                      placeholder="200.00"
+                      min="0"
+                      inputMode="decimal"
+                      value={`${currentShift.totalSalesPedidos}`}
+                      onFocus={() => { simulateActivity(); }}
+                      onChange={(e) => {
+                        simulateActivity()
+                        setCurrentShift(prev => ({ ...prev, totalSalesPedidos: parseFloat(e.target.value) || 0 }))
+                      }}
+                      className="text-base bg-white border-green-300 focus:border-green-500"
                     />
                   </div>
 
-                {/* Calculated Fields */}
-                <div className="space-y-4 border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <DollarSign className="h-5 w-5 text-blue-600" />
-                    <h3 className="text-lg font-semibold text-blue-800">Pago al Repartidor</h3>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-base font-medium">Tiempo Trabajado</Label>
-                      <div className="p-4 bg-white rounded-lg">
-                        <span className="text-lg font-semibold">{currentShift.hoursWorked}h</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-base font-medium">Total de Tickets</Label>
-                      <div className="p-4 bg-white rounded-lg">
-                        <span className="text-lg font-semibold">{currentShift.totalTickets}</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-base font-medium">Importe de Pedidos</Label>
-                      <div className="p-4 bg-white rounded-lg">
-                        <span className="text-lg font-semibold">{currentShift.totalAmount.toFixed(2)} €</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-base font-medium">Total Cobrado</Label>
-                      <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">
-                        <span className="text-lg font-bold text-blue-700">{currentShift.totalEarned.toFixed(2)} €</span>
-                      </div>
-                    </div>
-                    {bonusMessage && (
-                      <div className="space-y-2 col-span-2">
-                        <Label className="text-base font-medium">Bono por Pedidos</Label>
-                        <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">
-                          <span className="text-lg font-semibold text-blue-700">
-                            {bonusMessage}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                  </div>
-                </div>
-
-                {/* Ingresos de Caja */}
-                <div className="space-y-6 border-2 border-green-200 rounded-lg p-6 bg-green-50">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle className="h-6 w-6 text-green-600" />
-                    <h3 className="text-xl font-bold text-green-800">Ingresos de Caja</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="totalDatafono" className="text-base font-medium text-green-800">
+                      Total de Pedidos Cobrados con Datáfono (€)
+                    </Label>
+                    <Input
+                      id="totalDatafono"
+                      type="number"
+                      step="any"
+                      placeholder="50.00"
+                      min="0"
+                      inputMode="decimal"
+                      value={`${currentShift.totalDatafono}`}
+                      onFocus={() => { simulateActivity(); }}
+                      onChange={(e) => {
+                        simulateActivity()
+                        setCurrentShift(prev => ({ ...prev, totalDatafono: parseFloat(e.target.value) || 0 }))
+                      }}
+                      className="text-base bg-white border-green-300 focus:border-green-500"
+                    />
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="totalSales" className="text-base font-medium text-green-800">
-                        Total Venta Pedidos (€)
-                      </Label>
-                      <Input
-                        id="totalSales"
-                        type="number"
-                        step="any"
-                        placeholder="200.00"
-                        min="0"
-                        inputMode="decimal"
-                        value={`${currentShift.totalSalesPedidos}`}
-                        onFocus={(e) => e.currentTarget.select()}
-                        onChange={(e) =>
-                          setCurrentShift((prev) => ({
-                            ...prev,
-                            totalSalesPedidos: Number.parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                        className="text-base bg-white border-green-300 focus:border-green-500"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="totalDatafono" className="text-base font-medium text-green-800">
-                        Total de Pedidos Cobrados con Datáfono (€)
-                      </Label>
-                      <Input
-                        id="totalDatafono"
-                        type="number"
-                        step="any"
-                        placeholder="50.00"
-                        min="0"
-                        inputMode="decimal"
-                        value={`${currentShift.totalDatafono}`}
-                        onFocus={(e) => e.currentTarget.select()}
-                        onChange={(e) =>
-                          setCurrentShift((prev) => ({
-                            ...prev,
-                            totalDatafono: Number.parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                        className="text-base bg-white border-green-300 focus:border-green-500"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-base font-medium text-green-800">Total Caja Neto</Label>
-                      <div className="p-4 bg-green-200 border-2 border-green-400 rounded-lg">
-                        <span
-                          className={`text-xl font-bold ${currentShift.totalCajaNeto < 0 ? "text-red-700" : "text-green-800"}`}
-                        >
-                          {(currentShift.totalCajaNeto < 0 ? 0 : currentShift.totalCajaNeto).toFixed(2)} €
-                        </span>
-                      </div>
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium text-green-800">Total Caja Neto</Label>
+                    <div className="p-4 bg-green-200 border-2 border-green-400 rounded-lg">
+                      <span className={`text-xl font-bold ${currentShift.totalCajaNeto < 0 ? "text-red-700" : "text-green-800"}`}>
+                        {(currentShift.totalCajaNeto < 0 ? 0 : currentShift.totalCajaNeto).toFixed(2)} €
+                      </span>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {errors.length > 0 && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <ul className="list-disc list-inside space-y-1">
-                        {errors.map((error, index) => (
-                          <li key={index}>{error}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
+              {errors.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <ul className="list-disc list-inside space-y-1">
+                      {errors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
 
-                <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" size="lg">
-                  Enviar a Revisión
-                </Button>
-              </form>
-            </CardContent>
-
-          </Card>
-        </div>
+              <Button
+                type="submit"
+                onPointerDown={() => simulateActivity()}
+                className="w-full bg-red-600 hover:bg-red-700"
+                size="lg"
+              >
+                Enviar a Revisión
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
-    </AuthGuard>
-  )
+    </div>
+  </AuthGuard>
+)
 }
