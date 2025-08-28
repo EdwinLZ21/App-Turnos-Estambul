@@ -19,7 +19,6 @@ import Image from "next/image"
 import { NumericInput } from "@/components/ui/NumericInput"
 
 
-
 // Persiste turno activo y borrador en LocalStorage
 function persistCurrentShift(userId: string, shift: ShiftData | null) {
   if (!userId || !shift) return
@@ -203,32 +202,34 @@ const handleLogout = () => {
 const validateForm = (): string[] => {
   const errors: string[] = []
 
-  // 1) Validar que exista hora de entrada y de salida; 00:00 es válido
+  // Validar que exista hora de entrada y salida; 00:00 es válido
   if (!currentShift.entryTime || !currentShift.exitTime) {
     return ["Ingrese la hora de entrada y salida."]
   }
 
-  // 2) Evitar turno de duración cero
+  // Evitar turno de duración cero
   if (currentShift.entryTime === currentShift.exitTime) {
     errors.push("La hora de entrada y de salida no pueden ser iguales.")
   }
 
-  // 3) Sólo validar máximo 7 horas
+  // Sólo validar máximo 7 horas
   if (currentShift.hoursWorked > 7) {
     errors.push("El turno no puede superar las 7 horas.")
   }
 
-  // 4) Validaciones existentes de pedidos y demás
+  // Validar molares
   if (currentShift.molaresOrders && !currentShift.molaresOrderNumbers.trim()) {
     errors.push("Indique los números de pedidos.")
   }
 
+  // Pedidos a domicilio
   if (currentShift.homeDeliveryOrders) {
     const homeOrdersStr = currentShift.homeDeliveryOrders
       .split(",")
       .map((n) => n.trim())
       .filter((n) => n)
     const homeOrders = homeOrdersStr.map((n) => Number.parseInt(n, 10))
+
     if (homeOrdersStr.some((n) => !/^\d+$/.test(n))) {
       errors.push("Los pedidos a domicilio deben ser números enteros positivos.")
     }
@@ -240,6 +241,7 @@ const validateForm = (): string[] => {
     }
   }
 
+  // Pedidos online
   if (currentShift.onlineOrders) {
     const onlineOrders = currentShift.onlineOrders
       .split(",")
@@ -433,7 +435,7 @@ return (
               </CardDescription>
             </div>
 
-            {true && (
+            {currentShift.entryTime && currentShift.exitTime && (
               <div className="mt-6 bg-red-700 text-white rounded-lg p-5 border border-red-600 mx-4">
                 <div className="text-center text-2xl font-bold mb-6">RESUMEN</div>
                 <div className="mb-6">
@@ -713,46 +715,37 @@ return (
                     <Label htmlFor="totalSales" className="text-xl font-semibold text-green-800">
                       Total Venta Pedidos (€)
                     </Label>
-<NumericInput
-  id="totalSales"
-  value={currentShift.totalSalesPedidos}
-  onFocus={() => simulateActivity()}
-  onBlur={() => simulateActivity()}
-  onChange={(e) => {
-    simulateActivity()
-    // Convierte coma a punto para parsear correctamente
-    const normalized = e.target.value.replace(/,/g, ".")
-    setCurrentShift(prev => ({
-      ...prev,
-      totalSalesPedidos: parseFloat(normalized) || 0
-    }))
-  }}
-  className="text-2xl bg-white h-12 py-4 px-5 border-green-300 focus:border-green-500"
-  style={{ fontSize: '1.3rem' }}
-/>
-
+    <NumericInput
+      id="totalSales"
+      value={currentShift.totalSalesPedidos.toString()}
+      onFocus={() => { simulateActivity(); }}
+      onBlur={() => { simulateActivity(); }}
+      onChange={(e) => {
+        simulateActivity()
+        const parsed = parseFloat(e.target.value.replace(",", ".")) || 0
+        setCurrentShift(prev => ({ ...prev, totalSalesPedidos: parsed }))
+      }}
+      className="text-2xl bg-white h-12 py-4 px-5 border-green-300 focus:border-green-500"
+      style={{ fontSize: '1.3rem' }}
+    />
                   </div>
                   <div className="space-y-3">
                     <Label htmlFor="totalDatafono" className="text-xl font-semibold text-green-800">
                       Total de Pedidos Cobrados con Datáfono (€)
                     </Label>
-<NumericInput
-  id="totalDatafono"
-  value={currentShift.totalDatafono}
-  onFocus={() => simulateActivity()}
-  onBlur={() => simulateActivity()}
-  onChange={(e) => {
-    simulateActivity()
-    const normalized = e.target.value.replace(/,/g, ".")
-    setCurrentShift(prev => ({
-      ...prev,
-      totalDatafono: parseFloat(normalized) || 0
-    }))
-  }}
-  className="text-2xl bg-white h-12 py-4 px-5 border-green-300 focus:border-green-500"
-  style={{ fontSize: '1.3rem' }}
-/>
-
+      <NumericInput
+      id="totalDatafono"
+      value={currentShift.totalDatafono.toString()}
+      onFocus={() => { simulateActivity(); }}
+      onBlur={() => { simulateActivity(); }}
+      onChange={(e) => {
+        simulateActivity()
+        const parsed = parseFloat(e.target.value.replace(",", ".")) || 0
+        setCurrentShift(prev => ({ ...prev, totalDatafono: parsed }))
+      }}
+      className="text-2xl bg-white h-12 py-4 px-5 border-green-300 focus:border-green-500"
+      style={{ fontSize: '1.3rem' }}
+    />
                   </div>
                   <div className="space-y-3">
                     <Label className="text-xl font-semibold text-green-800">Total Caja Neto</Label>
