@@ -334,11 +334,11 @@ export default function LoginPage() {
                           </div>
                         </div>
 
-                        {/* 🦷 Molares */}
+                        {/*  Molares */}
                         {molaresArr.length > 0 && (
                           <div>
                             <h4 className="text-sm font-semibold text-gray-700 mb-2 text-center border-b border-gray-200 pb-1">
-                              🦷 Molares
+                               Molares
                             </h4>
                             <div className="text-center">
                               <div className="flex flex-wrap justify-center gap-1">
