@@ -1,71 +1,77 @@
 // components/ui/NumericInput.tsx
 "use client"
-
 import React, { useState, useEffect } from "react"
 import { CustomNumericKeyboard } from "./CustomNumericKeyboard"
-
-interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
-  value?: string | number
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
-}
-
 export function NumericInput({
   onFocus,
   onBlur,
   value: propValue,
   onChange,
   ...props
-}: Props) {
+}: React.InputHTMLAttributes<HTMLInputElement>) {
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [value, setValue] = useState(propValue?.toString() || "")
-
-  // Sincroniza estado interno con propValue
+  // Sincronizar con el valor externo
   useEffect(() => {
     setValue(propValue?.toString() || "")
   }, [propValue])
-
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    setShowKeyboard(true)
-    setTimeout(() => {
-      const rect = e.target.getBoundingClientRect()
-      const viewportHeight = window.innerHeight
-      const keyboardHeight = 250
-      if (rect.bottom > viewportHeight - keyboardHeight) {
-        e.target.scrollIntoView({ behavior: "smooth", block: "center" })
-      }
-    }, 300)
-    onFocus?.(e)
-  }
-
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    setTimeout(() => {
-      const activeElement = document.activeElement
-      const keyboardElement = document.querySelector(".numeric-keyboard")
-      if (!keyboardElement?.contains(activeElement)) {
-        setShowKeyboard(false)
-        onBlur?.(e)
-      }
-    }, 150)
-  }
-
+const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+  setShowKeyboard(true)
+  
+  // Scroll mínimo, solo si es absolutamente necesario
+  setTimeout(() => {
+    const rect = e.target.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const keyboardHeight = 250
+    
+    // Solo hacer scroll si el campo estaría tapado
+    if (rect.bottom > viewportHeight - keyboardHeight) {
+      e.target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      })
+    }
+  }, 300) // Delay para que aparezca el teclado primero
+  
+  if (onFocus) onFocus(e)
+}
+const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  // Solo cerrar si el click NO fue en el teclado
+  setTimeout(() => {
+    // Verificar si el elemento activo es parte del teclado
+    const activeElement = document.activeElement
+    const keyboardElement = document.querySelector('.numeric-keyboard')
+    
+    if (!keyboardElement?.contains(activeElement)) {
+      setShowKeyboard(false)
+      if (onBlur) onBlur(e)
+    }
+  }, 150)
+}
   const handleInsert = (char: string) => {
-    // Solo permitir dígitos y coma
-    if (!/^[0-9,]$/.test(char)) return
     const newValue = value + char
     setValue(newValue)
-    onChange?.({ target: { value: newValue } } as React.ChangeEvent<HTMLInputElement>)
+    // Simular evento onChange
+    if (onChange) {
+      const event = {
+        target: { value: newValue }
+      } as React.ChangeEvent<HTMLInputElement>
+      onChange(event)
+    }
   }
-
   const handleDelete = () => {
-    const newValue = value.slice(0, -1)
+    const newValue = value.toString().slice(0, -1)
     setValue(newValue)
-    onChange?.({ target: { value: newValue } } as React.ChangeEvent<HTMLInputElement>)
+    if (onChange) {
+      const event = {
+        target: { value: newValue }
+      } as React.ChangeEvent<HTMLInputElement>
+      onChange(event)
+    }
   }
-
   const handleKeyboardClose = () => {
     setShowKeyboard(false)
   }
-
   return (
     <div className="relative">
       <input
@@ -73,9 +79,8 @@ export function NumericInput({
         value={value}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        readOnly
-        inputMode="none"
-        className={`${props.className || ""} cursor-pointer w-full`}
+        readOnly // Para forzar uso del teclado personalizado
+        className={`${props.className || ""} cursor-pointer`}
       />
       {showKeyboard && (
         <CustomNumericKeyboard
