@@ -1,58 +1,91 @@
 // components/ui/NumericInput.tsx
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
+import { CustomNumericKeyboard } from "./CustomNumericKeyboard"
 
-export function NumericInput(
-  props: React.InputHTMLAttributes<HTMLInputElement>
-) {
-  const { onChange, onKeyDown, value, ...rest } = props
+interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
+  value?: string | number
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+}
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const allowed =
-      // Un solo carácter: dígito o coma
-      (e.key.length === 1 && /[\d,]/.test(e.key)) ||
-      // Teclas especiales: retroceso, borrar, flechas, tab, Enter
-      [
-        "Backspace",
-        "Delete",
-        "ArrowLeft",
-        "ArrowRight",
-        "Tab",
-        "Enter",
-      ].includes(e.key)
+export function NumericInput({
+  onFocus,
+  onBlur,
+  value: propValue,
+  onChange,
+  ...props
+}: Props) {
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [value, setValue] = useState(propValue?.toString() || "")
 
-    if (!allowed) {
-      e.preventDefault()
-    }
+  // Sincroniza estado interno con propValue
+  useEffect(() => {
+    setValue(propValue?.toString() || "")
+  }, [propValue])
 
-    if (onKeyDown) onKeyDown(e)
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setShowKeyboard(true)
+    setTimeout(() => {
+      const rect = e.target.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const keyboardHeight = 250
+      if (rect.bottom > viewportHeight - keyboardHeight) {
+        e.target.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
+    }, 300)
+    onFocus?.(e)
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Filtrar cualquier carácter no permitido
-    const filtered = e.target.value.replace(/[^0-9,]/g, "")
-    if (onChange) {
-      // Reconstruir evento con el valor filtrado
-      const event = {
-        ...e,
-        target: { ...e.target, value: filtered },
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setTimeout(() => {
+      const activeElement = document.activeElement
+      const keyboardElement = document.querySelector(".numeric-keyboard")
+      if (!keyboardElement?.contains(activeElement)) {
+        setShowKeyboard(false)
+        onBlur?.(e)
       }
-      onChange(event as any)
-    }
+    }, 150)
+  }
+
+  const handleInsert = (char: string) => {
+    // Solo permitir dígitos y coma
+    if (!/^[0-9,]$/.test(char)) return
+    const newValue = value + char
+    setValue(newValue)
+    onChange?.({ target: { value: newValue } } as React.ChangeEvent<HTMLInputElement>)
+  }
+
+  const handleDelete = () => {
+    const newValue = value.slice(0, -1)
+    setValue(newValue)
+    onChange?.({ target: { value: newValue } } as React.ChangeEvent<HTMLInputElement>)
+  }
+
+  const handleKeyboardClose = () => {
+    setShowKeyboard(false)
   }
 
   return (
-    <input
-      type="text"
-      inputMode="numeric"
-      pattern="[0-9,]*"
-      autoComplete="off"
-      {...rest}
-      value={value}
-      onKeyDown={handleKeyDown}
-      onChange={handleChange}
-      className={`${props.className ?? ""} w-full border rounded px-3 py-2 focus:outline-none focus:ring`}
-    />
+    <div className="relative">
+      <input
+        {...props}
+        value={value}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        readOnly
+        inputMode="none"
+        className={`${props.className || ""} cursor-pointer w-full`}
+      />
+      {showKeyboard && (
+        <CustomNumericKeyboard
+          onInsert={handleInsert}
+          onDelete={handleDelete}
+          onClose={handleKeyboardClose}
+        />
+      )}
+    </div>
   )
 }
+
+

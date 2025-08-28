@@ -158,7 +158,7 @@ export default function LoginPage() {
           )}
 
           {selectedRole === "cashier" && (
-            <Label className="mt-auto text-center font-medium">Ingrese contraseña</Label>
+            <Label className="mt-auto text-center font-medium"></Label>
           )}
         </div>
 

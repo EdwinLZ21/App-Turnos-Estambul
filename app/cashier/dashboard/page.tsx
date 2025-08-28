@@ -329,8 +329,8 @@ export default function CashierDashboard() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <h1 className="text-3xl font-bold text-gray-900">Panel de Cajero</h1>
-                                <p className="text-lg text-red-600 font-medium">Cajero {userId}</p>
+                                <h1 className="text-4xl font-bold text-gray-900">Panel de Cajero</h1>
+                                <p className="text-2xl text-red-600 font-medium">Cajero {userId}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -348,11 +348,18 @@ export default function CashierDashboard() {
                     {/* Filtros eliminados */}
 
                     <Tabs defaultValue="pending" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="pending" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
-                                Turnos Pendientes ({getFilteredPendingShifts().length})
+                        <TabsList className="flex w-full">
+                            <TabsTrigger
+                            value="pending"
+                            className="flex-1 text-2xl font-semibold text-center py-5 px-6 data-[state=active]:bg-red-600 data-[state=active]:text-white"
+                            >
+                            Turnos Pendientes ({getFilteredPendingShifts().length})
                             </TabsTrigger>
-                            <TabsTrigger value="reviewed" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
+
+                            <TabsTrigger
+                            value="reviewed"
+                            className="flex-1 text-2xl font-semibold text-center py-5 px-6 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+                            >
                                 Historial de la Semana ({getFilteredReviewedShifts().length})
                             </TabsTrigger>
                         </TabsList>
