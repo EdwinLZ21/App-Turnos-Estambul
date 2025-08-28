@@ -224,7 +224,8 @@ export default function LoginPage() {
                 }
               }}
               onClick={() => {}}
-              className="py-[clamp(0.75rem,4vw,2rem)] text-[clamp(1.5rem,6vw,3rem)] bg-gray-100 rounded-lg active:bg-gray-200"
+              className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,3vw,4rem)] bg-gray-100 rounded-lg active:bg-gray-200"
+
             >
               {k}
           </button>
@@ -232,21 +233,21 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => setPassword(p => p.slice(0, -1))}
-            className="py-[clamp(0.75rem,4vw,2rem)] text-[clamp(1rem,4vw,2rem)] bg-red-100 rounded-lg active:bg-red-200"
+            className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,2vw,4rem)] bg-red-100 rounded-lg active:bg-red-200"
           >
             BORRAR
           </button>
           <button
             type="button"
             onClick={() => setPassword(p => p + ",")}
-            className="py-[clamp(0.75rem,4vw,2rem)] text-[clamp(1.5rem,6vw,3rem)] bg-gray-100 rounded-lg active:bg-gray-200"
+            className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,3vw,4rem)] bg-gray-100 rounded-lg active:bg-gray-200"
           >
             ,
           </button>
           <button
             type="button"
             onClick={() => setPassword(p => p + "0")}
-            className="py-[clamp(0.75rem,4vw,2rem)] text-[clamp(1.5rem,6vw,3rem)] bg-gray-100 rounded-lg active:bg-gray-200"
+            className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,3vw,4rem)] bg-gray-100 rounded-lg active:bg-gray-200"
           >
             0
           </button>
