@@ -118,55 +118,47 @@ export default function DriverDashboard() {
   }, [userId])
 
 
-  // Cargar turno anterior, borrador y pendiente al montar o cambiar userId
-  useEffect(() => {
-    if (!userId) return
+// Cargar turno anterior, borrador y pendiente al montar o cambiar userId
+useEffect(() => {
+  if (!userId) return
 
+  // 1) Turno anterior desde DB con estado "reviewed"
+  supabase
+    .from('driver_shifts')
+    .select('*')
+    .eq('driver_id', userId)
+    .eq('status', 'reviewed')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single()
+    .then(({ data, error }) => {
+      if (!error && data) {
+        setPreviousShift(mapShift(data))
+      }
+    })
 
-    // 1) Turno anterior desde DB
-    supabase
-      .from('driver_shifts')
-      .select('*')
-      .eq('driver_id', userId)
-      .eq('status', 'reviewed')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .single()
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setPreviousShift(mapShift(data))
-        }
-      })
+  // 2) Turno pendiente desde DB con estado "pending"
+  supabase
+    .from('driver_shifts')
+    .select('*')
+    .eq('driver_id', userId)
+    .eq('status', 'pending')
+    .single()
+    .then(({ data, error }) => {
+      if (!error && data) {
+        setCurrentShift(mapShift(data))
+        setIsSubmitted(true)
+      } else {
+        setCurrentShift(null)
+        setIsSubmitted(false)
+      }
+    })
 
+  // 3) Carga borrador local del turno (no afecta bloqueo, es solo para UI)
+  const draftRaw = localStorage.getItem(`currentShiftDraft_${userId}`)
+  setCurrentShiftDraft(draftRaw ? JSON.parse(draftRaw) : null)
+}, [userId])
 
-    // 2) Borrador local
-    const draftRaw = localStorage.getItem(`currentShiftDraft_${userId}`)
-    setCurrentShiftDraft(draftRaw ? JSON.parse(draftRaw) : null)
-
-
-    // 3) Turno pendiente
-    const isPending = localStorage.getItem(`shiftSubmitted_${userId}`) === "true"
-    const shiftId = localStorage.getItem(`currentShiftId_${userId}`)
-    if (shiftId && isPending) {
-      supabase
-        .from("driver_shifts")
-        .select("*")
-        .eq("id", shiftId)
-        .single()
-        .then(({ data, error }) => {
-          if (!error && data) {
-            if (data.status === "reviewed") {
-              setPreviousShift(mapShift(data))
-              setCurrentShift(null)
-              setIsSubmitted(false)
-            } else {
-              setCurrentShift(mapShift(data))
-              setIsSubmitted(true)
-            }
-          }
-        })
-    }
-  }, [userId])
 
 
   const handleClearTurno = () => {
@@ -241,7 +233,7 @@ export default function DriverDashboard() {
             <Button
               variant="outline"
               onClick={handleLogout}
-              className="flex items-center gap-2 border-red-200 hover:bg-red-50 bg-transparent"
+              className="flex items-center gap-2 border-red-200 hover:bg-red-50 bg-transparent text-2xl"
             >
               <LogOut className="h-4 w-4" />
               Cerrar Sesión

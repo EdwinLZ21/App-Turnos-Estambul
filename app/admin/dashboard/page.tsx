@@ -186,7 +186,7 @@ export default function AdminDashboard() {
 
   return (
     <AuthGuard>
-      <InactivityMonitor onLogout={handleLogout} timeoutSeconds={30} />
+      <InactivityMonitor onLogout={handleLogout} timeoutSeconds={15} />
 
       <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-red-50 to-white p-8">
         <div className="flex items-center justify-between w-full max-w-6xl mb-8">

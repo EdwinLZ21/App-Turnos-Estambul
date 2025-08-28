@@ -10,7 +10,7 @@ interface InactivityMonitorProps {
   timeoutSeconds?: number
 }
 
-export function InactivityMonitor({ onLogout, timeoutSeconds = 30 }: InactivityMonitorProps) {
+export function InactivityMonitor({ onLogout, timeoutSeconds = 15 }: InactivityMonitorProps) {
   const [showWarning, setShowWarning] = useState(false)
   const [countdown, setCountdown] = useState(timeoutSeconds)
   const [lastActivity, setLastActivity] = useState(Date.now())
