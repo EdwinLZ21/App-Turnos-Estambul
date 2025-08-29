@@ -187,72 +187,91 @@ export default function LoginPage() {
         )}
       </div>
 
-      {/* Derecha: Teclado y contraseña */}
-      <div className="w-full md:w-1/2 bg-white rounded-lg shadow-md border border-red-200 p-8 flex flex-col">
-        <Label className="block text-center text-2xl md:text-3xl font-semibold text-red-700 mb-4">
-          Contraseña
-        </Label>
-        <input
-          type="password"
-          readOnly
-          value={password.replace(/./g, "•")}
-          placeholder="Ingrese su contraseña"
-          className="border rounded-lg px-3 py-4 mb-6"
-        />
-        <div className="grid grid-cols-3 gap-1 mb-4">
-          {["1","2","3","4","5","6","7","8","9"].map(k => (
-            <button
-              key={k}
-              type="button"
-              onPointerDown={() => {
-                const next = password + k
-                setPassword(next)
-                const expected =
-                  selectedRole === "driver"
-                    ? driverMap[username]
-                    : selectedRole === "cashier"
-                    ? "025"
-                    : ""
-                if (next === expected && expected) {
-                  localStorage.setItem("userRole", selectedRole)
-                  localStorage.setItem("userId", selectedRole === "driver" ? username : "1")
-                  router.push(
-                    selectedRole === "driver" ? "/driver/dashboard" : "/cashier/dashboard"
-                  )
-                } else if (expected && next.length >= expected.length) {
-                  setError("Contraseña incorrecta. Intente de nuevo.")
-                  setPassword("")
-                }
-              }}
-              onClick={() => {}}
-              className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,3vw,4rem)] bg-gray-100 rounded-lg active:bg-gray-200"
-
-            >
-              {k}
-          </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setPassword(p => p.slice(0, -1))}
-            className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,2vw,4rem)] bg-red-100 rounded-lg active:bg-red-200"
-          >
-            BORRAR
-          </button>
-          <button
-            type="button"
-            onClick={() => setPassword(p => p + ",")}
-            className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,3vw,4rem)] bg-gray-100 rounded-lg active:bg-gray-200"
-          >
-            ,
-          </button>
-          <button
-            type="button"
-            onClick={() => setPassword(p => p + "0")}
-            className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,3vw,4rem)] bg-gray-100 rounded-lg active:bg-gray-200"
-          >
-            0
-          </button>
-        </div>
+{/* Derecha: Teclado y contraseña */}
+<div className="w-full md:w-1/2 bg-white rounded-lg shadow-md border border-red-200 p-8 flex flex-col">
+  <Label className="block text-center text-2xl md:text-3xl font-semibold text-red-700 mb-4">
+    Contraseña
+  </Label>
+  <input
+    type="password"
+    readOnly
+    value={password.replace(/./g, "•")}
+    placeholder="Ingrese su contraseña"
+    className="border rounded-lg px-3 py-4 mb-6"
+  />
+  <div className="grid grid-cols-3 gap-1 mb-4">
+    {["1","2","3","4","5","6","7","8","9"].map(k => (
+      <button
+        key={k}
+        type="button"
+        onPointerDown={() => {
+          const next = password + k;
+          setPassword(next);
+          const expected =
+            selectedRole === "driver"
+              ? driverMap[username]
+              : selectedRole === "cashier"
+              ? "025"
+              : "";
+          if (next === expected && expected) {
+            localStorage.setItem("userRole", selectedRole);
+            localStorage.setItem("userId", selectedRole === "driver" ? username : "1");
+            router.push(
+              selectedRole === "driver" ? "/driver/dashboard" : "/cashier/dashboard"
+            );
+          } else if (expected && next.length >= expected.length) {
+            setError("Contraseña incorrecta. Intente de nuevo.");
+            setPassword("");
+          }
+        }}
+        onClick={() => {}}
+        className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,3vw,4rem)] bg-gray-100 rounded-lg active:bg-gray-200"
+      >
+        {k}
+      </button>
+    ))}
+    <button
+      type="button"
+      onClick={() => setPassword(p => p.slice(0, -1))}
+      className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,2vw,4rem)] bg-red-100 rounded-lg active:bg-red-200"
+    >
+      BORRAR
+    </button>
+    <button
+      type="button"
+      onClick={() => setPassword(p => p + ",")}
+      className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,3vw,4rem)] bg-gray-100 rounded-lg active:bg-gray-200"
+    >
+      ,
+    </button>
+    {/* Botón 0 corregido */}
+    <button
+      type="button"
+      onPointerDown={() => {
+        const next = password + "0";
+        setPassword(next);
+        const expected =
+          selectedRole === "driver"
+            ? driverMap[username]
+            : selectedRole === "cashier"
+            ? "025"
+            : "";
+        if (next === expected && expected) {
+          localStorage.setItem("userRole", selectedRole);
+          localStorage.setItem("userId", selectedRole === "driver" ? username : "1");
+          router.push(
+            selectedRole === "driver" ? "/driver/dashboard" : "/cashier/dashboard"
+          );
+        } else if (expected && next.length >= expected.length) {
+          setError("Contraseña incorrecta. Intente de nuevo.");
+          setPassword("");
+        }
+      }}
+      className="py-[clamp(0.1rem,0.1vw,1rem)] text-[clamp(1rem,3vw,4rem)] bg-gray-100 rounded-lg active:bg-gray-200"
+    >
+      0
+    </button>
+  </div>
         
         {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
           {/* Botón Ver Repartidores Activos */}
