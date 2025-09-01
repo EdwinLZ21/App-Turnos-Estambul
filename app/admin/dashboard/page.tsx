@@ -59,48 +59,61 @@ export default function AdminDashboard() {
     loadAvailableMonths()
   }, [selectedMonth])
 
-  useEffect(() => {
-    if (!selectedMonth) return
-    const loadData = async () => {
-      setLoading(true)
-      const [year, monthStr] = selectedMonth.split("-")
-      const month = Number(monthStr)
-      const startDate = `${year}-${String(month).padStart(2, "0")}-01`
-      const lastDay = new Date(Number(year), month, 0).toISOString().split("T")[0]
+useEffect(() => {
+  if (!selectedMonth) return
+  const loadData = async () => {
+    setLoading(true)
+    const [year, monthStr] = selectedMonth.split("-")
+    const yearNum = Number(year)
+    const monthNum = Number(monthStr)
 
-      const { data: shifts, error } = await supabase
-        .from("driver_shifts")
-        .select("*")
-        .gte("date", startDate)
-        .lte("date", lastDay)
-        .eq("status", "reviewed")
+    // Fecha inicio: día 1 del mes a las 05:00
+    const startDate = new Date(yearNum, monthNum - 1, 1, 5, 0, 0).toISOString()
 
-      const grouped: Record<string, MonthlyDriverData> = {}
-      shifts?.forEach((shift) => {
-        const id = shift.driver_id || "N/A"
-        if (!grouped[id]) {
-          grouped[id] = { driverId: id, turnos: 0, horas: 0, tickets: 0, bonos: 0, cobro: 0, incidencias: [], observaciones: [] }
-        }
-        const g = grouped[id]
-        g.turnos++
-        g.horas += Number(shift.hours_worked || 0)
-        g.tickets += Number(shift.total_tickets || 0)
-        g.bonos += Number(shift.bonus_earned || 0) 
-        g.cobro += Number(shift.total_earned || 0)
-        if (shift.incidents) g.incidencias.push({ fecha: shift.date, texto: shift.incidents })
-        if (shift.review_notes) g.observaciones.push({ fecha: shift.date, texto: shift.review_notes })
-      })
+    // Fecha fin: día 1 del mes siguiente a las 05:00
+    const nextMonth = monthNum === 12 ? 1 : monthNum + 1
+    const nextYear = monthNum === 12 ? yearNum + 1 : yearNum
+    const endDate = new Date(nextYear, nextMonth - 1, 1, 5, 0, 0).toISOString()
 
-      setMonthlyData(
-        Object.values(grouped).map((r) => ({
-          ...r,
-          rendimiento: r.horas > 0 ? Number((r.cobro / r.horas).toFixed(2)) : 0,
-        }))
-      )
+    const { data: shifts, error } = await supabase
+      .from("driver_shifts")
+      .select("*")
+      .gte("date", startDate)
+      .lt("date", endDate)
+      .eq("status", "reviewed")
+
+    if (error) {
+      console.error("Error fetching data:", error.message)
       setLoading(false)
+      return
     }
-    loadData()
-  }, [selectedMonth])
+
+    const grouped: Record<string, MonthlyDriverData> = {}
+    shifts.forEach((shift) => {
+      const id = shift.driver_id || "N/A"
+      if (!grouped[id]) {
+        grouped[id] = { driverId: id, turnos: 0, horas: 0, tickets: 0, bonos: 0, cobro: 0, incidencias: [], observaciones: [] }
+      }
+      const g = grouped[id]
+      g.turnos++
+      g.horas += Number(shift.hours_worked || 0)
+      g.tickets += Number(shift.total_tickets || 0)
+      g.bonos += Number(shift.bonus_earned || 0)
+      g.cobro += Number(shift.total_earned || 0)
+      if (shift.incidents) g.incidencias.push({ fecha: shift.date, texto: shift.incidents })
+      if (shift.review_notes) g.observaciones.push({ fecha: shift.date, texto: shift.review_notes })
+    })
+
+    setMonthlyData(
+      Object.values(grouped).map((r) => ({
+        ...r,
+        rendimiento: r.horas > 0 ? Number((r.cobro / r.horas).toFixed(2)) : 0,
+      }))
+    )
+    setLoading(false)
+  }
+  loadData()
+}, [selectedMonth])
 
   // Generar CSV con saltos de línea y truncado
   const generateCSV = () => {
